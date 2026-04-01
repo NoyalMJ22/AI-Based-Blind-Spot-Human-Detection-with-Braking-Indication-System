@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EDGE EYE — Blind Spot AI Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg0: #06080b;
+  --bg1: #0b0e14;
+  --bg2: #0f1319;
+  --bg3: #141a22;
+  --bg4: #1b2230;
+  --bg5: #222c3a;
+  --line: rgba(255,255,255,0.06);
+  --line2: rgba(255,255,255,0.10);
+  --tx0: #e4eaf2;
+  --tx1: #8fa3bd;
+  --tx2: #4e6278;
+  --cyan: #00e5ff;
+  --cyan2: #00b8cc;
+  --red: #ff3c3c;
+  --red2: #cc2020;
+  --amber: #ffb300;
+  --green: #00e5a0;
+  --green2: #00b87e;
+  --violet: #9b6dff;
+  --r: 8px;
+  --r2: 5px;
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'IBM Plex Sans', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  background: var(--bg0);
+  color: var(--tx0);
+  font-family: var(--sans);
+  font-size: 13px;
+}
+
+/* ═══ LAYOUT ═══ */
+.shell { display: flex; height: 100vh; }
+
+/* ═══ SIDEBAR ═══ */
+.sidebar {
+  width: 210px; min-width: 210px;
+  background: var(--bg1);
+  border-right: 1px solid var(--line);
+  display: flex; flex-direction: column;
+  z-index: 20;
+}
+.logo-area {
+  padding: 20px 18px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.logo-row { display: flex; align-items: center; gap: 10px; }
+.logo-glyph {
+  width: 36px; height: 36px;
+  background: linear-gradient(140deg, var(--cyan), var(--violet));
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+  box-shadow: 0 0 18px rgba(0,229,255,0.2);
+}
+.logo-name { font-size: 15px; font-weight: 700; letter-spacing: 0.06em; font-family: var(--mono); }
+.logo-tag { font-size: 9px; color: var(--tx2); letter-spacing: 0.12em; text-transform: uppercase; margin-top: 2px; }
+
+nav { padding: 12px 0; flex: 1; overflow-y: auto; }
+.nav-section { padding: 10px 18px 4px; font-size: 9px; font-weight: 600; color: var(--tx2); letter-spacing: 0.12em; text-transform: uppercase; }
+.nav-item {
+  display: flex; align-items: center; gap: 11px;
+  padding: 9px 18px;
+  cursor: pointer;
+  font-size: 12.5px; color: var(--tx1);
+  border-left: 2px solid transparent;
+  transition: all 0.12s;
+  user-select: none;
+}
+.nav-item:hover { background: var(--bg3); color: var(--tx0); }
+.nav-item.active { color: var(--cyan); background: rgba(0,229,255,0.05); border-left-color: var(--cyan); }
+.nav-ic { font-size: 14px; width: 18px; text-align: center; flex-shrink: 0; }
+.nav-badge {
+  margin-left: auto; font-size: 9px; font-family: var(--mono);
+  padding: 2px 6px; border-radius: 10px;
+  background: rgba(255,59,59,0.15); color: var(--red);
+}
+
+.sidebar-foot {
+  padding: 12px 18px 14px;
+  border-top: 1px solid var(--line);
+  font-size: 10px; color: var(--tx2);
+}
+.sys-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green); display: inline-block;
+  margin-right: 6px; flex-shrink: 0;
+  animation: blink 2s ease-in-out infinite;
+}
+.sys-dot.dead { background: var(--tx2); animation: none; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.35} }
+
+/* ═══ MAIN ═══ */
+.main { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px;
+  height: 52px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg1);
+  flex-shrink: 0;
+  gap: 14px;
+}
+.topbar-title { font-size: 14px; font-weight: 600; letter-spacing: 0.01em; }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+
+.pill {
+  padding: 4px 11px; border-radius: 20px;
+  font-size: 10px; font-weight: 600; font-family: var(--mono);
+  letter-spacing: 0.04em;
+}
+.pill-clear { background: rgba(0,229,160,0.10); color: var(--green); border: 1px solid rgba(0,229,160,0.2); }
+.pill-alert { background: rgba(255,179,0,0.12); color: var(--amber); border: 1px solid rgba(255,179,0,0.22); }
+.pill-crit  { background: rgba(255,60,60,0.12); color: var(--red);   border: 1px solid rgba(255,60,60,0.22); }
+.pill-off   { background: rgba(78,98,120,0.15); color: var(--tx2);   border: 1px solid rgba(78,98,120,0.2); }
+.pill-blue  { background: rgba(0,229,255,0.08); color: var(--cyan);  border: 1px solid rgba(0,229,255,0.18); }
+
+.page-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; }
+.page { display: none; padding: 20px 24px 28px; }
+.page.active { display: block; }
+
+/* ═══ METRIC CARDS ═══ */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+  gap: 12px; margin-bottom: 18px;
+}
+.kpi {
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 14px 16px;
+  position: relative; overflow: hidden;
+  transition: border-color 0.2s;
+}
+.kpi::after {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+}
+.kpi.c-cyan::after  { background: linear-gradient(90deg, var(--cyan), var(--violet)); }
+.kpi.c-red::after   { background: var(--red); }
+.kpi.c-amber::after { background: var(--amber); }
+.kpi.c-green::after { background: var(--green); }
+.kpi.c-violet::after{ background: var(--violet); }
+.kpi-label { font-size: 10px; color: var(--tx2); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+.kpi-val {
+  font-size: 28px; font-weight: 700; font-family: var(--mono);
+  line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.kpi-val.cyan   { color: var(--cyan); }
+.kpi-val.red    { color: var(--red); }
+.kpi-val.amber  { color: var(--amber); }
+.kpi-val.green  { color: var(--green); }
+.kpi-val.violet { color: var(--violet); }
+.kpi-sub { font-size: 10px; color: var(--tx2); margin-top: 6px; }
+
+/* ═══ GRID ═══ */
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.g3 { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 14px; }
+.g3r { display: grid; grid-template-columns: 1fr 2fr; gap: 14px; margin-bottom: 14px; }
+
+/* ═══ CARD ═══ */
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+.card-h {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.card-title { font-size: 12px; font-weight: 600; letter-spacing: 0.02em; }
+.card-tag { font-size: 9px; color: var(--tx2); text-transform: uppercase; letter-spacing: 0.08em; }
+.card-b { padding: 14px 16px; }
+
+/* ═══ LIVE VIEW AREA ═══ */
+.live-shell {
+  position: relative;
+  background: #000;
+  border-radius: var(--r);
+  aspect-ratio: 16/9;
+  border: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; margin-bottom: 14px;
+}
+.live-placeholder {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  color: var(--tx2);
+}
+.live-placeholder svg { opacity: 0.3; }
+.live-placeholder p { font-size: 12px; }
+.live-stamp {
+  position: absolute; top: 10px; left: 10px;
+  background: rgba(255,60,60,0.85);
+  color: #fff; font-size: 9px; font-weight: 700; font-family: var(--mono);
+  padding: 3px 8px; border-radius: 3px; letter-spacing: 0.12em;
+  display: flex; align-items: center; gap: 5px;
+}
+.live-stamp .ld { width: 5px; height: 5px; border-radius: 50%; background: #fff; animation: blink 1s infinite; }
+.live-stat-row {
+  position: absolute; bottom: 10px; left: 10px; right: 10px;
+  display: flex; gap: 8px;
+}
+.live-chip {
+  background: rgba(6,8,11,0.82); backdrop-filter: blur(6px);
+  border: 1px solid var(--line2);
+  border-radius: 5px; padding: 5px 10px;
+  font-size: 11px; font-family: var(--mono);
+  display: flex; flex-direction: column; gap: 1px;
+}
+.live-chip-label { font-size: 8px; color: var(--tx2); text-transform: uppercase; letter-spacing: 0.1em; }
+.live-chip-val { font-weight: 600; }
+.alert-border {
+  position: absolute; inset: 0;
+  border: 3px solid var(--red);
+  border-radius: var(--r);
+  pointer-events: none; display: none;
+  animation: flash 0.5s ease-in-out infinite;
+}
+.crit-border {
+  position: absolute; inset: 0;
+  border: 4px solid var(--red);
+  border-radius: var(--r);
+  pointer-events: none; display: none;
+  animation: flash 0.25s ease-in-out infinite;
+  box-shadow: inset 0 0 40px rgba(255,60,60,0.18);
+}
+@keyframes flash { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+/* ═══ DETECTION LIST ═══ */
+.det-list { display: flex; flex-direction: column; gap: 6px; max-height: 340px; overflow-y: auto; }
+.det-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px;
+  background: var(--bg3); border: 1px solid var(--line);
+  border-radius: var(--r2); font-size: 11px;
+  transition: background 0.15s;
+}
+.det-row.new { animation: rowflash 0.6s ease; }
+@keyframes rowflash { 0%{background:rgba(0,229,255,0.1)} 100%{background:var(--bg3)} }
+.det-tag {
+  font-size: 8px; font-weight: 700; font-family: var(--mono); letter-spacing: 0.05em;
+  padding: 3px 7px; border-radius: 3px; flex-shrink: 0;
+}
+.det-tag.ADULT  { background: rgba(0,229,255,0.12); color: var(--cyan); }
+.det-tag.CHILD  { background: rgba(255,179,0,0.12); color: var(--amber); }
+.det-tag.HUMAN  { background: rgba(0,229,160,0.12); color: var(--green); }
+.det-dist { font-family: var(--mono); font-size: 12px; min-width: 60px; font-weight: 600; }
+.det-conf { color: var(--tx2); min-width: 42px; }
+.det-alert-flag {
+  margin-left: auto; font-size: 8px; font-family: var(--mono); font-weight: 700;
+  padding: 2px 6px; border-radius: 3px;
+}
+.det-alert-flag.crit { background: rgba(255,60,60,0.15); color: var(--red); }
+.det-alert-flag.warn { background: rgba(255,179,0,0.12); color: var(--amber); }
+.det-time { color: var(--tx2); font-size: 10px; font-family: var(--mono); }
+
+/* ═══ GAUGE ═══ */
+.gauge-container {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 8px 0 4px;
+  gap: 4px;
+}
+.gauge-canvas-wrap { position: relative; width: 180px; height: 95px; flex-shrink: 0; }
+#gauge-chart { width: 180px !important; height: 180px !important; margin-top: -85px; }
+.gauge-val-label {
+  font-family: var(--mono); font-size: 20px; font-weight: 700;
+  position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+  white-space: nowrap;
+}
+.gauge-sub { font-size: 9px; color: var(--tx2); text-transform: uppercase; letter-spacing: 0.1em; }
+.gauge-scale {
+  display: flex; width: 180px; justify-content: space-between;
+  font-size: 8px; font-family: var(--mono); color: var(--tx2);
+}
+
+/* ═══ CHART WRAPPERS ═══ */
+.cw { position: relative; width: 100%; }
+.cw-sm { height: 140px; }
+.cw-md { height: 200px; }
+.cw-lg { height: 260px; }
+
+/* ═══ ACCURACY TABLE ═══ */
+.acc-tbl { width: 100%; border-collapse: collapse; font-size: 11px; }
+.acc-tbl th { text-align: left; padding: 8px 12px; font-size: 9px; color: var(--tx2); text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid var(--line); font-weight: 600; }
+.acc-tbl td { padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.acc-tbl tr:last-child td { border-bottom: none; }
+.acc-tbl tr:hover td { background: var(--bg3); }
+.bar-track { height: 4px; background: var(--bg0); border-radius: 2px; overflow: hidden; width: 80px; display: inline-block; vertical-align: middle; }
+.bar-fill  { height: 100%; border-radius: 2px; transition: width 0.8s ease; }
+
+/* ═══ ALERT LOG ═══ */
+.event-row {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 11px 16px; border-bottom: 1px solid var(--line);
+  font-size: 11px;
+}
+.event-row:last-child { border-bottom: none; }
+.event-icon {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; flex-shrink: 0;
+}
+.event-icon.crit { background: rgba(255,60,60,0.14); }
+.event-icon.warn { background: rgba(255,179,0,0.12); }
+.event-icon.ok   { background: rgba(0,229,160,0.10); }
+.event-msg { line-height: 1.55; }
+.event-ts { font-size: 9px; color: var(--tx2); font-family: var(--mono); margin-top: 3px; }
+
+/* ═══ SETTINGS ═══ */
+.settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 0; border-bottom: 1px solid var(--line);
+}
+.toggle-row:last-child { border-bottom: none; }
+.toggle-lbl { font-size: 12px; }
+.toggle-desc { font-size: 10px; color: var(--tx2); margin-top: 2px; }
+.sw { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+.sw input { opacity: 0; width: 0; height: 0; }
+.sw-track {
+  position: absolute; inset: 0; background: var(--bg0);
+  border: 1px solid var(--line2); border-radius: 10px; cursor: pointer; transition: 0.2s;
+}
+.sw-track::after {
+  content: ''; position: absolute; width: 14px; height: 14px;
+  left: 2px; top: 2px; background: var(--tx2); border-radius: 50%; transition: 0.2s;
+}
+input:checked + .sw-track { background: rgba(0,229,255,0.12); border-color: var(--cyan); }
+input:checked + .sw-track::after { background: var(--cyan); transform: translateX(16px); }
+
+.param-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 0; border-bottom: 1px solid var(--line);
+}
+.param-row:last-child { border-bottom: none; }
+.param-lbl { font-size: 11px; flex: 1.2; }
+.param-inp { flex: 2; }
+input[type=range] {
+  -webkit-appearance: none; width: 100%; height: 3px;
+  background: var(--bg0); border-radius: 2px; outline: none;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 13px; height: 13px;
+  border-radius: 50%; background: var(--cyan); cursor: pointer;
+}
+.param-v { font-family: var(--mono); font-size: 10px; color: var(--cyan); min-width: 44px; text-align: right; }
+
+/* ═══ INFO GRID ═══ */
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.info-item { padding: 10px 12px; background: var(--bg3); border: 1px solid var(--line); border-radius: var(--r2); }
+.info-k { font-size: 9px; color: var(--tx2); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+.info-v { font-size: 12px; font-weight: 500; font-family: var(--mono); }
+
+/* ═══ CONNECTION BANNER ═══ */
+#conn-banner {
+  display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  background: rgba(255,179,0,0.92); color: #000;
+  font-size: 11px; font-weight: 600; text-align: center;
+  padding: 7px; letter-spacing: 0.04em;
+}
+
+/* ═══ SCROLLBAR ═══ */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg1); }
+::-webkit-scrollbar-thumb { background: var(--bg5); border-radius: 2px; }
+
+/* ═══ SIGNAL PULSE ═══ */
+.pulse { animation: pulse-ring 1.5s ease-in-out infinite; }
+@keyframes pulse-ring { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(1.04)} }
+</style>
+</head>
+<body>
+
+<div id="conn-banner">⚠ Detection system offline — showing last recorded data</div>
+
+<div class="shell">
+
+  <!-- ══ SIDEBAR ══ -->
+  <aside class="sidebar">
+    <div class="logo-area">
+      <div class="logo-row">
+        <div class="logo-glyph">👁</div>
+        <div>
+          <div class="logo-name">EDGE EYE</div>
+          <div class="logo-tag">Blind Spot AI · v2.1</div>
+        </div>
+      </div>
+    </div>
+    <nav>
+      <div class="nav-section">Monitor</div>
+      <div class="nav-item active" data-page="live" onclick="navTo(this,'live')">
+        <span class="nav-ic">⬤</span> Live Feed
+      </div>
+      <div class="nav-section">Analysis</div>
+      <div class="nav-item" data-page="analytics" onclick="navTo(this,'analytics')">
+        <span class="nav-ic">▦</span> Analytics
+      </div>
+      <div class="nav-item" data-page="accuracy" onclick="navTo(this,'accuracy')">
+        <span class="nav-ic">◎</span> Accuracy
+      </div>
+      <div class="nav-section">Logs</div>
+      <div class="nav-item" data-page="alerts" onclick="navTo(this,'alerts')">
+        <span class="nav-ic">⚠</span> Alert Log
+        <span class="nav-badge" id="badge-alerts">0</span>
+      </div>
+      <div class="nav-section">System</div>
+      <div class="nav-item" data-page="settings" onclick="navTo(this,'settings')">
+        <span class="nav-ic">⚙</span> Settings
+      </div>
+    </nav>
+    <div class="sidebar-foot">
+      <div style="display:flex;align-items:center;margin-bottom:6px">
+        <span class="sys-dot" id="sys-dot"></span>
+        <span id="sys-label" style="color:var(--tx1)">Connecting…</span>
+      </div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--tx2)" id="sys-time">--:--:--</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--tx2);margin-top:2px" id="sys-fps">-- FPS</div>
+    </div>
+  </aside>
+
+  <!-- ══ MAIN ══ -->
+  <div class="main">
+
+    <!-- ─── TOPBAR ─── -->
+    <div class="topbar">
+      <div class="topbar-title" id="topbar-title">Live Feed</div>
+      <div class="topbar-right">
+        <span class="pill pill-blue" id="model-pill">YOLOv8n</span>
+        <span class="pill pill-off" id="status-pill">● OFFLINE</span>
+        <span style="font-family:var(--mono);font-size:11px;color:var(--tx2)" id="top-clock"></span>
+      </div>
+    </div>
+
+    <!-- ─── PAGES ─── -->
+    <div class="page-scroll">
+
+      <!-- ════ LIVE PAGE ════ -->
+      <div class="page active" id="page-live">
+        <div class="kpi-row">
+          <div class="kpi c-red">
+            <div class="kpi-label">Closest Person</div>
+            <div class="kpi-val red" id="kpi-closest">---</div>
+            <div class="kpi-sub">current frame</div>
+          </div>
+          <div class="kpi c-amber">
+            <div class="kpi-label">Active Alerts</div>
+            <div class="kpi-val amber" id="kpi-active-alerts">0</div>
+            <div class="kpi-sub">within alert zone</div>
+          </div>
+          <div class="kpi c-cyan">
+            <div class="kpi-label">Session Detections</div>
+            <div class="kpi-val cyan" id="kpi-total">0</div>
+            <div class="kpi-sub">this run</div>
+          </div>
+          <div class="kpi c-green">
+            <div class="kpi-label">Avg Confidence</div>
+            <div class="kpi-val green" id="kpi-conf">--%</div>
+            <div class="kpi-sub">model certainty</div>
+          </div>
+          <div class="kpi c-violet">
+            <div class="kpi-label">Camera FPS</div>
+            <div class="kpi-val violet" id="kpi-fps">--</div>
+            <div class="kpi-sub">live throughput</div>
+          </div>
+        </div>
+
+        <div class="g3">
+          <div>
+            <!-- Live camera area -->
+            <div class="live-shell" id="live-shell">
+              <div class="live-placeholder" id="live-placeholder">
+                <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
+                  <rect x="2" y="10" width="48" height="34" rx="4" stroke="#4e6278" stroke-width="2"/>
+                  <circle cx="26" cy="27" r="10" stroke="#4e6278" stroke-width="2"/>
+                  <circle cx="26" cy="27" r="4" fill="#4e6278"/>
+                  <rect x="18" y="6" width="8" height="4" rx="2" fill="#4e6278"/>
+                </svg>
+                <p>Camera feed runs in CV2 window<br>Dashboard shows live detection data</p>
+              </div>
+              <div class="live-stamp"><span class="ld"></span> LIVE</div>
+              <div class="live-stat-row">
+                <div class="live-chip">
+                  <span class="live-chip-label">Status</span>
+                  <span class="live-chip-val" id="live-chip-status" style="color:var(--green)">CLEAR</span>
+                </div>
+                <div class="live-chip">
+                  <span class="live-chip-label">Closest</span>
+                  <span class="live-chip-val" id="live-chip-dist">---</span>
+                </div>
+                <div class="live-chip">
+                  <span class="live-chip-label">FPS</span>
+                  <span class="live-chip-val" id="live-chip-fps">--</span>
+                </div>
+                <div class="live-chip">
+                  <span class="live-chip-label">Session Alerts</span>
+                  <span class="live-chip-val" id="live-chip-salerts">0</span>
+                </div>
+                <div class="live-chip">
+                  <span class="live-chip-label">Focal Length</span>
+                  <span class="live-chip-val" id="live-chip-fl">700 px</span>
+                </div>
+              </div>
+              <div class="alert-border" id="alert-border"></div>
+              <div class="crit-border"  id="crit-border"></div>
+            </div>
+
+            <!-- Distance over time mini chart -->
+            <div class="card">
+              <div class="card-h">
+                <span class="card-title">Distance — Live Stream</span>
+                <span class="card-tag" id="det-count-tag">0 events</span>
+              </div>
+              <div class="card-b">
+                <div class="cw cw-md"><canvas id="dist-live-chart"></canvas></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right panel -->
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <!-- Gauge -->
+            <div class="card">
+              <div class="card-h">
+                <span class="card-title">Distance Gauge</span>
+                <span class="card-tag">last reading</span>
+              </div>
+              <div class="card-b">
+                <div class="gauge-container">
+                  <div class="gauge-canvas-wrap">
+                    <canvas id="gauge-chart" width="180" height="180"></canvas>
+                    <div class="gauge-val-label" id="gauge-val" style="color:var(--green)">---</div>
+                  </div>
+                  <div class="gauge-scale"><span>0</span><span>100</span><span>200</span><span>350+</span></div>
+                  <div class="gauge-sub" id="gauge-label">NO DETECTION</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Detection list -->
+            <div class="card" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
+              <div class="card-h" style="flex-shrink:0">
+                <span class="card-title">Recent Detections</span>
+                <span class="card-tag" id="det-count-tag2">—</span>
+              </div>
+              <div class="card-b" style="flex:1;overflow-y:auto;padding:10px 12px;">
+                <div class="det-list" id="det-list"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ ANALYTICS PAGE ════ -->
+      <div class="page" id="page-analytics">
+        <div class="kpi-row">
+          <div class="kpi c-green">
+            <div class="kpi-label">Total Detections</div>
+            <div class="kpi-val green" id="an-total">0</div>
+            <div class="kpi-sub">this session</div>
+          </div>
+          <div class="kpi c-red">
+            <div class="kpi-label">Alerts Triggered</div>
+            <div class="kpi-val red" id="an-alerts">0</div>
+            <div class="kpi-sub">within 200 cm</div>
+          </div>
+          <div class="kpi c-amber">
+            <div class="kpi-label">Avg Distance</div>
+            <div class="kpi-val amber" id="an-avg-dist">---</div>
+            <div class="kpi-sub">mean across events</div>
+          </div>
+          <div class="kpi c-cyan">
+            <div class="kpi-label">Min Distance</div>
+            <div class="kpi-val cyan" id="an-min-dist">---</div>
+            <div class="kpi-sub">closest recorded</div>
+          </div>
+          <div class="kpi c-violet">
+            <div class="kpi-label">Session Duration</div>
+            <div class="kpi-val violet" style="font-size:18px" id="an-duration">---</div>
+            <div class="kpi-sub" id="an-time-range">--</div>
+          </div>
+        </div>
+
+        <div class="g2">
+          <div class="card">
+            <div class="card-h">
+              <span class="card-title">Distance Over Time</span>
+              <span class="card-tag">all detections</span>
+            </div>
+            <div class="card-b"><div class="cw cw-lg"><canvas id="an-dist-time"></canvas></div></div>
+          </div>
+          <div class="card">
+            <div class="card-h">
+              <span class="card-title">Distance Distribution</span>
+              <span class="card-tag">histogram</span>
+            </div>
+            <div class="card-b"><div class="cw cw-lg"><canvas id="an-dist-hist"></canvas></div></div>
+          </div>
+        </div>
+        <div class="g2">
+          <div class="card">
+            <div class="card-h">
+              <span class="card-title">Detections Per Second</span>
+              <span class="card-tag">timeline</span>
+            </div>
+            <div class="card-b"><div class="cw cw-md"><canvas id="an-per-sec"></canvas></div></div>
+          </div>
+          <div class="card">
+            <div class="card-h">
+              <span class="card-title">Detection Type Breakdown</span>
+              <span class="card-tag">session summary</span>
+            </div>
+            <div class="card-b" style="display:flex;align-items:center;gap:20px">
+              <div style="flex:1;max-width:150px"><div class="cw" style="height:150px"><canvas id="an-type-pie"></canvas></div></div>
+              <div style="flex:1;font-size:11px" id="an-type-legend"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ ACCURACY PAGE ════ -->
+      <div class="page" id="page-accuracy">
+        <div class="kpi-row">
+          <div class="kpi c-green">
+            <div class="kpi-label">Avg Confidence</div>
+            <div class="kpi-val green" id="ac-avg-conf">--%</div>
+            <div class="kpi-sub">mean model score</div>
+          </div>
+          <div class="kpi c-cyan">
+            <div class="kpi-label">Peak Confidence</div>
+            <div class="kpi-val cyan" id="ac-peak-conf">--%</div>
+            <div class="kpi-sub">highest recorded</div>
+          </div>
+          <div class="kpi c-amber">
+            <div class="kpi-label">Low Confidence</div>
+            <div class="kpi-val amber" id="ac-low-conf">--%</div>
+            <div class="kpi-sub">lowest recorded</div>
+          </div>
+          <div class="kpi c-violet">
+            <div class="kpi-label">Threshold</div>
+            <div class="kpi-val violet">45%</div>
+            <div class="kpi-sub">configured minimum</div>
+          </div>
+        </div>
+
+        <div class="g2" style="margin-bottom:14px">
+          <div class="card">
+            <div class="card-h"><span class="card-title">Confidence Over Time</span><span class="card-tag">per detection</span></div>
+            <div class="card-b"><div class="cw cw-lg"><canvas id="ac-conf-time"></canvas></div></div>
+          </div>
+          <div class="card">
+            <div class="card-h"><span class="card-title">Confidence Histogram</span><span class="card-tag">distribution</span></div>
+            <div class="card-b"><div class="cw cw-lg"><canvas id="ac-conf-hist"></canvas></div></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-h"><span class="card-title">Distance Accuracy — Calibration Analysis</span></div>
+          <div class="card-b">
+            <div style="margin-bottom:12px;padding:12px;background:var(--bg3);border-radius:6px;font-size:11px;color:var(--tx1);line-height:1.7;border-left:3px solid var(--cyan)">
+              <strong style="color:var(--cyan)">Distance formula:</strong>
+              <code style="background:var(--bg0);padding:2px 6px;border-radius:3px;font-family:var(--mono)">
+                distance = (known_height × focal_length) / box_height_px
+              </code>
+              — Press <kbd style="background:var(--bg0);padding:1px 6px;border-radius:3px;font-family:var(--mono)">C</kbd>
+              while subject is at 150 cm to recalibrate focal length adaptively.
+            </div>
+            <table class="acc-tbl">
+              <thead><tr><th>Range</th><th>Method</th><th>Est. Accuracy</th><th>Error</th><th>Notes</th></tr></thead>
+              <tbody>
+                <tr><td>50–100 cm</td><td>Monocular focal</td>
+                    <td><div class="bar-track"><div class="bar-fill" style="width:88%;background:var(--green)"></div></div> <span style="font-family:var(--mono);font-size:10px;color:var(--green);margin-left:6px">~88%</span></td>
+                    <td style="color:var(--amber);font-family:var(--mono);font-size:10px">±10–15 cm</td>
+                    <td style="color:var(--tx2)">Close range, high accuracy</td></tr>
+                <tr><td>100–200 cm</td><td>Monocular focal</td>
+                    <td><div class="bar-track"><div class="bar-fill" style="width:82%;background:var(--green)"></div></div> <span style="font-family:var(--mono);font-size:10px;color:var(--green);margin-left:6px">~82%</span></td>
+                    <td style="color:var(--amber);font-family:var(--mono);font-size:10px">±15–25 cm</td>
+                    <td style="color:var(--tx2)">Alert zone — reliable</td></tr>
+                <tr><td>200–350 cm</td><td>Monocular focal</td>
+                    <td><div class="bar-track"><div class="bar-fill" style="width:70%;background:var(--amber)"></div></div> <span style="font-family:var(--mono);font-size:10px;color:var(--amber);margin-left:6px">~70%</span></td>
+                    <td style="color:var(--amber);font-family:var(--mono);font-size:10px">±25–40 cm</td>
+                    <td style="color:var(--tx2)">Safe zone — acceptable</td></tr>
+                <tr><td>350 cm+</td><td>Monocular focal</td>
+                    <td><div class="bar-track"><div class="bar-fill" style="width:50%;background:var(--red)"></div></div> <span style="font-family:var(--mono);font-size:10px;color:var(--red);margin-left:6px">~50%</span></td>
+                    <td style="color:var(--red);font-family:var(--mono);font-size:10px">±50+ cm</td>
+                    <td style="color:var(--tx2)">Degrades with range</td></tr>
+                <tr><td>Any (post-calib.)</td><td>Adaptive focal</td>
+                    <td><div class="bar-track"><div class="bar-fill" style="width:93%;background:var(--cyan)"></div></div> <span style="font-family:var(--mono);font-size:10px;color:var(--cyan);margin-left:6px">~93%</span></td>
+                    <td style="color:var(--green);font-family:var(--mono);font-size:10px">±8–12 cm</td>
+                    <td style="color:var(--tx2)">Press C at known dist.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h"><span class="card-title">Model Comparison — YOLOv8n vs YOLOv10n</span></div>
+          <div class="card-b"><div class="cw cw-md"><canvas id="ac-model-cmp"></canvas></div></div>
+        </div>
+      </div>
+
+      <!-- ════ ALERTS PAGE ════ -->
+      <div class="page" id="page-alerts">
+        <div class="kpi-row" style="grid-template-columns:repeat(3,1fr)">
+          <div class="kpi c-red">
+            <div class="kpi-label">Critical (&lt;100cm)</div>
+            <div class="kpi-val red" id="al-crit">0</div>
+            <div class="kpi-sub">this session</div>
+          </div>
+          <div class="kpi c-amber">
+            <div class="kpi-label">Alerts (100–200cm)</div>
+            <div class="kpi-val amber" id="al-warn">0</div>
+            <div class="kpi-sub">this session</div>
+          </div>
+          <div class="kpi c-green">
+            <div class="kpi-label">Safe Detections</div>
+            <div class="kpi-val green" id="al-safe">0</div>
+            <div class="kpi-sub">&gt;200cm range</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h">
+            <span class="card-title">Event Timeline</span>
+            <span class="card-tag" id="al-session-tag">--</span>
+          </div>
+          <div id="alert-log-list" style="max-height:520px;overflow-y:auto;"></div>
+        </div>
+      </div>
+
+      <!-- ════ SETTINGS PAGE ════ -->
+      <div class="page" id="page-settings">
+        <div class="settings-grid">
+          <div>
+            <div class="card" style="margin-bottom:14px">
+              <div class="card-h"><span class="card-title">Detection Parameters</span></div>
+              <div class="card-b">
+                <div class="param-row">
+                  <div class="param-lbl">Alert Distance</div>
+                  <div class="param-inp"><input type="range" min="50" max="400" value="200" oninput="this.nextElementSibling.textContent=this.value+'cm'"></div>
+                  <div class="param-v">200cm</div>
+                </div>
+                <div class="param-row">
+                  <div class="param-lbl">Critical Distance</div>
+                  <div class="param-inp"><input type="range" min="20" max="200" value="100" oninput="this.nextElementSibling.textContent=this.value+'cm'"></div>
+                  <div class="param-v">100cm</div>
+                </div>
+                <div class="param-row">
+                  <div class="param-lbl">Confidence Threshold</div>
+                  <div class="param-inp"><input type="range" min="10" max="90" value="45" oninput="this.nextElementSibling.textContent=this.value+'%'"></div>
+                  <div class="param-v">45%</div>
+                </div>
+                <div class="param-row">
+                  <div class="param-lbl">Initial Focal Length</div>
+                  <div class="param-inp"><input type="range" min="400" max="1200" value="700" oninput="this.nextElementSibling.textContent=this.value+'px'"></div>
+                  <div class="param-v">700px</div>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-h"><span class="card-title">Alerts & Hardware</span></div>
+              <div class="card-b">
+                <div class="toggle-row">
+                  <div><div class="toggle-lbl">Audio Alert</div><div class="toggle-desc">Play alert_final.wav on detection</div></div>
+                  <label class="sw"><input type="checkbox" checked><span class="sw-track"></span></label>
+                </div>
+                <div class="toggle-row">
+                  <div><div class="toggle-lbl">Arduino LED</div><div class="toggle-desc">Send serial signal to Arduino COM5</div></div>
+                  <label class="sw"><input type="checkbox" checked><span class="sw-track"></span></label>
+                </div>
+                <div class="toggle-row">
+                  <div><div class="toggle-lbl">Mirror Camera</div><div class="toggle-desc">Laterally flip camera feed</div></div>
+                  <label class="sw"><input type="checkbox" checked><span class="sw-track"></span></label>
+                </div>
+                <div class="toggle-row">
+                  <div><div class="toggle-lbl">Save Logs (CSV + JSON)</div><div class="toggle-desc">Write to logs/ folder on each run</div></div>
+                  <label class="sw"><input type="checkbox" checked><span class="sw-track"></span></label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="card" style="margin-bottom:14px">
+              <div class="card-h"><span class="card-title">Live System Info</span></div>
+              <div class="card-b">
+                <div class="info-grid" id="sys-info-grid">
+                  <div class="info-item"><div class="info-k">Model</div><div class="info-v" id="si-model">--</div></div>
+                  <div class="info-item"><div class="info-k">Arduino</div><div class="info-v" id="si-arduino">--</div></div>
+                  <div class="info-item"><div class="info-k">Camera Res</div><div class="info-v" id="si-cam">--</div></div>
+                  <div class="info-item"><div class="info-k">Session ID</div><div class="info-v" id="si-sess" style="font-size:9px">--</div></div>
+                  <div class="info-item"><div class="info-k">Focal Length</div><div class="info-v" id="si-fl">--</div></div>
+                  <div class="info-item"><div class="info-k">Alert Dist</div><div class="info-v" id="si-alert-d">200 cm</div></div>
+                  <div class="info-item"><div class="info-k">Critical Dist</div><div class="info-v" id="si-crit-d">100 cm</div></div>
+                  <div class="info-item"><div class="info-k">Version</div><div class="info-v">v2.1</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-h"><span class="card-title">Quick Reference</span></div>
+              <div class="card-b" style="font-size:11px;color:var(--tx1);line-height:2">
+                <div><code style="font-family:var(--mono);color:var(--cyan)">python blindspot_v2.py</code> — starts detection + opens dashboard</div>
+                <div><code style="font-family:var(--mono);color:var(--cyan)">C</code> — calibrate focal length (stand 150 cm from camera)</div>
+                <div><code style="font-family:var(--mono);color:var(--cyan)">Q</code> — quit detection</div>
+                <div style="margin-top:10px;padding:10px;background:var(--bg3);border-radius:6px;color:var(--tx2);font-size:10px;line-height:1.7">
+                  Dashboard auto-reads <code style="font-family:var(--mono)">live_status.json</code> (written every frame) and
+                  <code style="font-family:var(--mono)">detections_log.csv</code> (updated per detection) for real-time data.
+                  Place this HTML in the same folder as the Python script.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /page-scroll -->
+  </div><!-- /main -->
+</div><!-- /shell -->
+
+<script>
+// ══════════════════════════════════════════════════════════
+//  CHART.JS DEFAULTS
+// ══════════════════════════════════════════════════════════
+Chart.defaults.color = '#4e6278';
+Chart.defaults.font.family = "'IBM Plex Mono', monospace";
+Chart.defaults.font.size = 10;
+Chart.defaults.plugins.tooltip.backgroundColor = '#0f1319';
+Chart.defaults.plugins.tooltip.borderColor = 'rgba(255,255,255,0.1)';
+Chart.defaults.plugins.tooltip.borderWidth = 1;
+Chart.defaults.plugins.tooltip.titleColor = '#e4eaf2';
+Chart.defaults.plugins.tooltip.bodyColor = '#8fa3bd';
+
+const C = { cyan:'#00e5ff', red:'#ff3c3c', amber:'#ffb300', green:'#00e5a0', violet:'#9b6dff', bg4:'#1b2230' };
+const charts = {};
+function destroyChart(id) { if(charts[id]){ charts[id].destroy(); delete charts[id]; } }
+
+// ══════════════════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════════════════
+const PAGE_TITLES = { live:'Live Feed', analytics:'Analytics', accuracy:'Accuracy & Model', alerts:'Alert Log', settings:'Settings' };
+function navTo(el, name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  el.classList.add('active');
+  document.getElementById('topbar-title').textContent = PAGE_TITLES[name];
+  // Rebuild charts for the visible page on switch
+  if(name==='analytics') buildAnalyticsCharts(rows);
+  if(name==='accuracy')  buildAccuracyCharts(rows);
+}
+
+// ══════════════════════════════════════════════════════════
+//  CSV PARSING
+// ══════════════════════════════════════════════════════════
+function parseCSV(text) {
+  const lines = text.trim().split('\n').filter(l => l.trim());
+  const start = lines[0].startsWith('timestamp') ? 1 : 0;
+  return lines.slice(start).map(r => {
+    const [ts, type, dist, conf, boxh] = r.split(',');
+    return { ts: (ts||'').trim(), type: (type||'').trim(), dist: +dist, conf: +conf, boxh: +boxh };
+  }).filter(r => !isNaN(r.dist) && r.dist > 0);
+}
+
+// Seeded data for "no file" fallback
+const SEED_CSV = `timestamp,type,distance_cm,confidence,box_height_px
+2026-03-23 10:00:01,ADULT,210,0.912,565
+2026-03-23 10:00:01,ADULT,205,0.934,572
+2026-03-23 10:00:02,ADULT,198,0.921,584
+2026-03-23 10:00:02,ADULT,192,0.945,601
+2026-03-23 10:00:03,ADULT,185,0.938,620
+2026-03-23 10:00:03,ADULT,181,0.951,635
+2026-03-23 10:00:04,ADULT,178,0.929,644
+2026-03-23 10:00:04,CHILD,95,0.872,750
+2026-03-23 10:00:05,CHILD,88,0.891,762
+2026-03-23 10:00:05,ADULT,183,0.926,630
+2026-03-23 10:00:06,ADULT,187,0.917,622
+2026-03-23 10:00:06,ADULT,192,0.939,608
+2026-03-23 10:00:07,ADULT,198,0.944,596
+2026-03-23 10:00:07,ADULT,205,0.930,580
+2026-03-23 10:00:08,ADULT,212,0.921,565
+2026-03-23 10:00:08,HUMAN,170,0.678,683`;
+
+let rows = parseCSV(SEED_CSV);
+let lastRowCount = -1;
+let isOnline = false;
+let liveStatus = null;
+
+// ══════════════════════════════════════════════════════════
+//  FETCH LIVE STATUS JSON (written every frame by Python)
+// ══════════════════════════════════════════════════════════
+async function fetchLiveStatus() {
+  try {
+    const res = await fetch('live_status.json?t=' + Date.now());
+    if (!res.ok) return false;
+    const data = await res.json();
+    // Only accept if timestamp is within last 10 seconds
+    const ts = new Date(data.ts);
+    const age = (Date.now() - ts.getTime()) / 1000;
+    if (age > 10) return false;
+    liveStatus = data;
+    return true;
+  } catch(e) { return false; }
+}
+
+// ══════════════════════════════════════════════════════════
+//  FETCH CSV DATA
+// ══════════════════════════════════════════════════════════
+async function fetchCSV() {
+  try {
+    const res = await fetch('detections_log.csv?t=' + Date.now());
+    if (!res.ok) return;
+    const text = await res.text();
+    const fresh = parseCSV(text);
+    if (fresh.length > 0) rows = fresh;
+  } catch(e) {}
+}
+
+// ══════════════════════════════════════════════════════════
+//  CLOCK
+// ══════════════════════════════════════════════════════════
+function tick() {
+  const t = new Date().toLocaleTimeString('en-GB');
+  const el = document.getElementById('sys-time');
+  const tc = document.getElementById('top-clock');
+  if(el) el.textContent = t;
+  if(tc) tc.textContent = t;
+}
+setInterval(tick, 1000); tick();
+
+// ══════════════════════════════════════════════════════════
+//  UPDATE LIVE CHIPS + GAUGE FROM live_status.json
+// ══════════════════════════════════════════════════════════
+function applyLiveStatus(s) {
+  if(!s) return;
+  const closest = s.closest_cm;
+  const fps     = s.fps;
+  const status  = s.status;
+
+  // Status pill
+  const pill = document.getElementById('status-pill');
+  if(status === 'CRITICAL') { pill.className = 'pill pill-crit'; pill.textContent = '⚠ CRITICAL'; }
+  else if(status === 'ALERT') { pill.className = 'pill pill-alert'; pill.textContent = '⚠ ALERT'; }
+  else { pill.className = 'pill pill-clear'; pill.textContent = '● CLEAR'; }
+
+  // Model pill
+  document.getElementById('model-pill').textContent = s.model || 'YOLOv8n';
+
+  // KPI cards
+  document.getElementById('kpi-closest').textContent = closest ? closest + ' cm' : '---';
+  document.getElementById('kpi-fps').textContent = fps ? fps.toFixed(1) : '--';
+  document.getElementById('sys-fps').textContent = fps ? fps.toFixed(1) + ' FPS' : '-- FPS';
+  document.getElementById('kpi-total').textContent = s.total_detections || 0;
+  document.getElementById('kpi-active-alerts').textContent = s.total_alerts || 0;
+
+  // Live chips
+  const chipStatus = document.getElementById('live-chip-status');
+  chipStatus.textContent = status;
+  chipStatus.style.color = status==='CRITICAL' ? 'var(--red)' : status==='ALERT' ? 'var(--amber)' : 'var(--green)';
+  document.getElementById('live-chip-dist').textContent = closest ? closest+' cm' : '---';
+  document.getElementById('live-chip-fps').textContent = fps ? fps.toFixed(1) : '--';
+  document.getElementById('live-chip-salerts').textContent = s.total_alerts || 0;
+  document.getElementById('live-chip-fl').textContent = s.focal_length ? s.focal_length+' px' : '---';
+
+  // Alert borders
+  document.getElementById('alert-border').style.display = (status==='ALERT'||status==='CRITICAL') ? 'block' : 'none';
+  document.getElementById('crit-border').style.display  = (status==='CRITICAL') ? 'block' : 'none';
+
+  // Gauge
+  updateGauge(closest || 9999);
+
+  // Settings system info
+  document.getElementById('si-model').textContent    = s.model || '--';
+  document.getElementById('si-arduino').textContent  = s.arduino || '--';
+  document.getElementById('si-cam').textContent      = s.cam_resolution || '--';
+  document.getElementById('si-sess').textContent     = (s.session_id || '--').slice(-12);
+  document.getElementById('si-fl').textContent       = s.focal_length ? s.focal_length+' px' : '--';
+  document.getElementById('si-alert-d').textContent  = (s.alert_distance_cm || 200)+' cm';
+  document.getElementById('si-crit-d').textContent   = (s.critical_distance_cm || 100)+' cm';
+
+  // Sidebar
+  const sysDot = document.getElementById('sys-dot');
+  const sysLbl = document.getElementById('sys-label');
+  sysDot.className = 'sys-dot';
+  sysLbl.textContent = 'System Online';
+  sysLbl.style.color = 'var(--tx0)';
+}
+
+// ══════════════════════════════════════════════════════════
+//  GAUGE CHART
+// ══════════════════════════════════════════════════════════
+function updateGauge(dist) {
+  const capped = Math.min(dist, 350);
+  const col = dist <= 100 ? C.red : dist <= 200 ? C.amber : C.green;
+  destroyChart('gauge');
+  charts['gauge'] = new Chart(document.getElementById('gauge-chart'), {
+    type: 'doughnut',
+    data: {
+      datasets: [{
+        data: [capped, Math.max(0, 350 - capped)],
+        backgroundColor: [col, 'rgba(255,255,255,0.04)'],
+        borderWidth: 0, circumference: 180, rotation: 270
+      }]
+    },
+    options: {
+      responsive: false, cutout: '72%',
+      plugins: { legend:{display:false}, tooltip:{enabled:false} }
+    }
+  });
+  const lbl = dist >= 9999 ? '---' : dist + ' cm';
+  document.getElementById('gauge-val').textContent = lbl;
+  document.getElementById('gauge-val').style.color = col;
+  document.getElementById('gauge-label').textContent =
+    dist <= 100 ? '🚨 CRITICAL — BRAKE NOW' :
+    dist <= 200 ? '⚠ ALERT — HUMAN NEARBY' :
+    dist >= 9999 ? 'NO DETECTION' : '✓ SAFE DISTANCE';
+}
+
+// ══════════════════════════════════════════════════════════
+//  LIVE DISTANCE CHART (rolling last 50 points)
+// ══════════════════════════════════════════════════════════
+function buildLiveDistChart(rows) {
+  const last50 = rows.slice(-50);
+  destroyChart('dist-live');
+  charts['dist-live'] = new Chart(document.getElementById('dist-live-chart'), {
+    type: 'line',
+    data: {
+      labels: last50.map((_,i) => i+1),
+      datasets: [
+        {
+          label: 'Distance (cm)', data: last50.map(r => r.dist),
+          borderColor: C.cyan, backgroundColor: 'rgba(0,229,255,0.06)',
+          borderWidth: 1.5, pointRadius: 2.5,
+          pointBackgroundColor: last50.map(r => r.dist<=100?C.red:r.dist<=200?C.amber:C.green),
+          fill: true, tension: 0.35
+        },
+        {
+          label: 'Alert 200cm', data: last50.map(()=>200),
+          borderColor: C.amber, borderDash:[5,5], borderWidth:1, pointRadius:0, fill:false
+        },
+        {
+          label: 'Critical 100cm', data: last50.map(()=>100),
+          borderColor: C.red, borderDash:[3,4], borderWidth:1, pointRadius:0, fill:false
+        }
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false, animation:{duration:200},
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,0.03)'}, ticks:{maxTicksLimit:8}},
+        y:{grid:{color:'rgba(255,255,255,0.03)'}, min:0, max:350,
+           ticks:{callback:v=>v+' cm'}}
+      }
+    }
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+//  DETECTION LIST (live page)
+// ══════════════════════════════════════════════════════════
+function buildDetectionList(rows) {
+  const dl = document.getElementById('det-list');
+  const latest = rows.slice().reverse().slice(0, 30);
+  if(rows.length === lastRowCount) return;
+  dl.innerHTML = '';
+  latest.forEach((r, idx) => {
+    const isCrit = r.dist <= 100;
+    const isAlert = r.dist <= 200;
+    const div = document.createElement('div');
+    div.className = 'det-row' + (idx === 0 ? ' new' : '');
+    const flagHtml = isCrit
+      ? '<span class="det-alert-flag crit">CRITICAL</span>'
+      : isAlert
+      ? '<span class="det-alert-flag warn">ALERT</span>'
+      : '';
+    div.innerHTML = `
+      <span class="det-tag ${r.type}">${r.type}</span>
+      <span class="det-dist" style="color:${isCrit?C.red:isAlert?C.amber:C.green}">${r.dist} cm</span>
+      <span class="det-conf">${(r.conf*100).toFixed(1)}%</span>
+      ${flagHtml}
+      <span class="det-time" style="margin-left:auto">${(r.ts.split(' ')[1]||r.ts.split('T')[1]||'').slice(0,8)}</span>
+    `;
+    dl.appendChild(div);
+  });
+  const tag = rows.length + ' events';
+  document.getElementById('det-count-tag').textContent = tag;
+  document.getElementById('det-count-tag2').textContent = tag;
+}
+
+// ══════════════════════════════════════════════════════════
+//  ANALYTICS CHARTS
+// ══════════════════════════════════════════════════════════
+function buildAnalyticsCharts(rows) {
+  if(!rows.length) return;
+
+  const alertRows = rows.filter(r => r.dist <= 200);
+  const avgDist = (rows.reduce((s,r)=>s+r.dist,0)/rows.length).toFixed(0);
+  const minDist = Math.min(...rows.map(r=>r.dist));
+
+  document.getElementById('an-total').textContent = rows.length;
+  document.getElementById('an-alerts').textContent = alertRows.length;
+  document.getElementById('an-avg-dist').textContent = avgDist + ' cm';
+  document.getElementById('an-min-dist').textContent = minDist + ' cm';
+
+  // Duration
+  try {
+    const t0 = new Date(rows[0].ts), t1 = new Date(rows[rows.length-1].ts);
+    const secs = Math.round((t1-t0)/1000);
+    document.getElementById('an-duration').textContent = secs + 's';
+    document.getElementById('an-time-range').textContent =
+      rows[0].ts.split(' ')[1]?.slice(0,8) + ' — ' + rows[rows.length-1].ts.split(' ')[1]?.slice(0,8);
+  } catch(e) {}
+
+  // Distance over time
+  destroyChart('an-dist-time');
+  charts['an-dist-time'] = new Chart(document.getElementById('an-dist-time'), {
+    type:'line',
+    data:{
+      labels: rows.map((_,i)=>i+1),
+      datasets:[
+        { label:'Distance', data:rows.map(r=>r.dist), borderColor:C.cyan,
+          backgroundColor:'rgba(0,229,255,0.05)', borderWidth:1.5, pointRadius:2,
+          pointBackgroundColor:rows.map(r=>r.dist<=100?C.red:r.dist<=200?C.amber:C.green),
+          fill:true, tension:0.3 },
+        { label:'Alert 200cm', data:rows.map(()=>200), borderColor:C.amber,
+          borderDash:[4,4], borderWidth:1, pointRadius:0, fill:false },
+        { label:'Critical 100cm', data:rows.map(()=>100), borderColor:C.red,
+          borderDash:[3,3], borderWidth:1, pointRadius:0, fill:false }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,0.03)'}, ticks:{maxTicksLimit:10}},
+        y:{grid:{color:'rgba(255,255,255,0.03)'}, min:0, max:360}
+      }
+    }
+  });
+
+  // Distance histogram
+  const bins = [0,50,100,150,200,250,300,350];
+  const binCounts = bins.map((b,i) => rows.filter(r=>r.dist>=b && r.dist<(bins[i+1]||9999)).length);
+  const binLabels = bins.map((b,i) => `${b}–${bins[i+1]||'+'}`);
+  destroyChart('an-dist-hist');
+  charts['an-dist-hist'] = new Chart(document.getElementById('an-dist-hist'), {
+    type:'bar',
+    data:{
+      labels:binLabels,
+      datasets:[{ data:binCounts,
+        backgroundColor: bins.map(b => b<100?'rgba(255,60,60,0.5)':b<200?'rgba(255,179,0,0.45)':'rgba(0,229,160,0.4)'),
+        borderColor: bins.map(b => b<100?C.red:b<200?C.amber:C.green),
+        borderWidth:1, borderRadius:3 }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,0.03)'}},
+        y:{grid:{color:'rgba(255,255,255,0.03)'}}
+      }
+    }
+  });
+
+  // Detections per second
+  const secMap = {};
+  rows.forEach(r => {
+    const sec = (r.ts.split(' ')[1]||'').slice(0,8);
+    secMap[sec] = (secMap[sec]||0)+1;
+  });
+  destroyChart('an-per-sec');
+  charts['an-per-sec'] = new Chart(document.getElementById('an-per-sec'), {
+    type:'bar',
+    data:{
+      labels:Object.keys(secMap),
+      datasets:[{ label:'Detections', data:Object.values(secMap),
+        backgroundColor:'rgba(0,229,255,0.35)', borderColor:C.cyan, borderWidth:1, borderRadius:3 }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,0.03)'}, ticks:{maxRotation:45,font:{size:8}}},
+        y:{grid:{color:'rgba(255,255,255,0.03)'}}
+      }
+    }
+  });
+
+  // Type pie
+  const adults = rows.filter(r=>r.type==='ADULT').length;
+  const children = rows.filter(r=>r.type==='CHILD').length;
+  const humans = rows.filter(r=>r.type==='HUMAN').length;
+  destroyChart('an-type-pie');
+  charts['an-type-pie'] = new Chart(document.getElementById('an-type-pie'), {
+    type:'doughnut',
+    data:{
+      labels:['ADULT','CHILD','HUMAN'],
+      datasets:[{ data:[adults,children,humans],
+        backgroundColor:[C.cyan,C.amber,C.green], borderWidth:0 }]
+    },
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'60%', plugins:{legend:{display:false}} }
+  });
+
+  // Legend
+  const legend = document.getElementById('an-type-legend');
+  const total = rows.length;
+  legend.innerHTML = [
+    { col:C.cyan, lbl:'ADULT', n:adults },
+    { col:C.amber, lbl:'CHILD', n:children },
+    { col:C.green, lbl:'HUMAN', n:humans }
+  ].map(x => `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <span style="width:9px;height:9px;border-radius:2px;background:${x.col};display:inline-block;flex-shrink:0"></span>
+      <span style="color:var(--tx1)">${x.lbl}</span>
+      <span style="margin-left:auto;font-family:var(--mono);color:${x.col}">${x.n} (${total?Math.round(x.n/total*100):0}%)</span>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════════════════════
+//  ACCURACY CHARTS
+// ══════════════════════════════════════════════════════════
+function buildAccuracyCharts(rows) {
+  if(!rows.length) return;
+  const avgConf = (rows.reduce((s,r)=>s+r.conf,0)/rows.length*100).toFixed(1);
+  const maxConf = (Math.max(...rows.map(r=>r.conf))*100).toFixed(1);
+  const minConf = (Math.min(...rows.map(r=>r.conf))*100).toFixed(1);
+
+  document.getElementById('ac-avg-conf').textContent  = avgConf+'%';
+  document.getElementById('ac-peak-conf').textContent = maxConf+'%';
+  document.getElementById('ac-low-conf').textContent  = minConf+'%';
+
+  // Confidence over time
+  destroyChart('ac-conf-time');
+  charts['ac-conf-time'] = new Chart(document.getElementById('ac-conf-time'), {
+    type:'line',
+    data:{
+      labels:rows.map((_,i)=>i+1),
+      datasets:[
+        { label:'Confidence', data:rows.map(r=>+(r.conf*100).toFixed(1)),
+          borderColor:C.green, backgroundColor:'rgba(0,229,160,0.06)',
+          borderWidth:1.5, pointRadius:2, fill:true, tension:0.3 },
+        { label:'Threshold 45%', data:rows.map(()=>45),
+          borderColor:C.red, borderDash:[4,4], borderWidth:1, pointRadius:0, fill:false }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,0.03)'}, ticks:{maxTicksLimit:10}},
+        y:{grid:{color:'rgba(255,255,255,0.03)'}, min:40, max:100, ticks:{callback:v=>v+'%'}}
+      }
+    }
+  });
+
+  // Confidence histogram
+  const bins = [45,55,65,75,80,85,90,95];
+  const counts = bins.map((b,i) => rows.filter(r=>r.conf*100>=b&&r.conf*100<(bins[i+1]||101)).length);
+  destroyChart('ac-conf-hist');
+  charts['ac-conf-hist'] = new Chart(document.getElementById('ac-conf-hist'), {
+    type:'bar',
+    data:{
+      labels:bins.map((b,i)=>`${b}–${bins[i+1]||100}%`),
+      datasets:[{ data:counts,
+        backgroundColor:'rgba(0,229,160,0.4)', borderColor:C.green, borderWidth:1, borderRadius:3 }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,0.03)'}},
+        y:{grid:{color:'rgba(255,255,255,0.03)'}}
+      }
+    }
+  });
+
+  // Model comparison
+  destroyChart('ac-model-cmp');
+  charts['ac-model-cmp'] = new Chart(document.getElementById('ac-model-cmp'), {
+    type:'bar',
+    data:{
+      labels:['mAP (COCO)','Avg Conf.','FPS','Model MB'],
+      datasets:[
+        { label:'YOLOv8n', data:[37.3,90.5,30,6.2],
+          backgroundColor:C.cyan+'88', borderColor:C.cyan, borderWidth:1, borderRadius:3 },
+        { label:'YOLOv10n', data:[38.5,91.2,28,5.7],
+          backgroundColor:C.violet+'88', borderColor:C.violet, borderWidth:1, borderRadius:3 }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:true, position:'top',
+        labels:{color:'#8fa3bd', boxWidth:10, font:{size:10}}}},
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,0.03)'}},
+        y:{grid:{color:'rgba(255,255,255,0.03)'}}
+      }
+    }
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+//  ALERT LOG PAGE
+// ══════════════════════════════════════════════════════════
+function buildAlertLog(rows) {
+  const crits = rows.filter(r=>r.dist<=100).length;
+  const warns = rows.filter(r=>r.dist>100&&r.dist<=200).length;
+  const safes = rows.filter(r=>r.dist>200).length;
+  document.getElementById('al-crit').textContent = crits;
+  document.getElementById('al-warn').textContent = warns;
+  document.getElementById('al-safe').textContent = safes;
+  document.getElementById('badge-alerts').textContent = crits + warns;
+
+  if(rows.length && rows[0].ts) {
+    document.getElementById('al-session-tag').textContent = rows[0].ts.split(' ')[0] || '--';
+  }
+
+  if(rows.length === lastRowCount) return;
+  const el = document.getElementById('alert-log-list');
+  el.innerHTML = '';
+  rows.slice().reverse().slice(0, 50).forEach(r => {
+    const isCrit = r.dist <= 100;
+    const isAlert = r.dist <= 200;
+    const div = document.createElement('div');
+    div.className = 'event-row';
+    div.innerHTML = `
+      <div class="event-icon ${isCrit?'crit':isAlert?'warn':'ok'}">${isCrit?'🚨':isAlert?'⚠':'✓'}</div>
+      <div>
+        <div class="event-msg">
+          ${isAlert ? `<strong style="color:${isCrit?C.red:C.amber}">${isCrit?'CRITICAL':'ALERT'}</strong> — ` : ''}
+          ${r.type} detected at <strong style="font-family:var(--mono)">${r.dist} cm</strong>,
+          confidence ${(r.conf*100).toFixed(1)}%
+        </div>
+        <div class="event-ts">${r.ts}</div>
+      </div>
+    `;
+    el.appendChild(div);
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+//  MAIN RENDER LOOP
+// ══════════════════════════════════════════════════════════
+function render() {
+  if(!rows.length) return;
+
+  const avgConf = (rows.reduce((s,r)=>s+r.conf,0)/rows.length*100).toFixed(1);
+  document.getElementById('kpi-conf').textContent = avgConf + '%';
+  document.getElementById('kpi-total').textContent = rows.length;
+  document.getElementById('kpi-active-alerts').textContent = rows.filter(r=>r.dist<=200).length;
+
+  buildDetectionList(rows);
+  buildLiveDistChart(rows);
+  buildAlertLog(rows);
+
+  // Only rebuild heavy charts if on that page
+  const activePage = document.querySelector('.page.active')?.id;
+  if(activePage === 'page-analytics') buildAnalyticsCharts(rows);
+  if(activePage === 'page-accuracy')  buildAccuracyCharts(rows);
+
+  // Gauge from CSV if no live status
+  if(!liveStatus) {
+    const minDist = Math.min(...rows.map(r=>r.dist));
+    updateGauge(minDist);
+  }
+
+  lastRowCount = rows.length;
+}
+
+// ══════════════════════════════════════════════════════════
+//  LIVE LOOP
+// ══════════════════════════════════════════════════════════
+let offlineStrikes = 0;
+async function liveLoop() {
+  const gotStatus = await fetchLiveStatus();
+  await fetchCSV();
+
+  if(gotStatus && liveStatus) {
+    isOnline = true;
+    offlineStrikes = 0;
+    applyLiveStatus(liveStatus);
+    document.getElementById('conn-banner').style.display = 'none';
+  } else {
+    offlineStrikes++;
+    if(offlineStrikes >= 3) {
+      isOnline = false;
+      document.getElementById('sys-dot').className = 'sys-dot dead';
+      document.getElementById('sys-label').textContent = 'System Offline';
+      document.getElementById('sys-label').style.color = 'var(--tx2)';
+      document.getElementById('status-pill').className = 'pill pill-off';
+      document.getElementById('status-pill').textContent = '● OFFLINE';
+      document.getElementById('conn-banner').style.display = 'block';
+      document.getElementById('alert-border').style.display = 'none';
+      document.getElementById('crit-border').style.display  = 'none';
+    }
+  }
+
+  render();
+}
+
+// Initial gauge
+updateGauge(9999);
+// Start everything
+liveLoop();
+setInterval(liveLoop, 1500);
+</script>
+</body>
+</html>

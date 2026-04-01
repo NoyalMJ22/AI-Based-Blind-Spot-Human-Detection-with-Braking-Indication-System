@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EDGE EYE BUS PRO — BLIND SPOT AI</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-base: #030508;
+    --bg-glass: rgba(20, 25, 35, 0.4);
+    --bg-glass-hover: rgba(30, 38, 50, 0.6);
+    --border-glass: rgba(255, 255, 255, 0.08);
+    --border-glass-light: rgba(255, 255, 255, 0.15);
+    
+    --text-primary: #f0f4f8;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    
+    --cyan: #00e5ff;
+    --cyan-glow: rgba(0, 229, 255, 0.3);
+    
+    --red: #ff3344;
+    --red-glow: rgba(255, 51, 68, 0.4);
+    
+    --amber: #ffb020;
+    --amber-glow: rgba(255, 176, 32, 0.3);
+    
+    --green: #10b981;
+    --green-glow: rgba(16, 185, 129, 0.3);
+    
+    --violet: #8b5cf6;
+    
+    --font-sans: 'Inter', sans-serif;
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    
+    --radius-lg: 16px;
+    --radius-md: 12px;
+    --radius-sm: 8px;
+  }
+  
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body {
+    background: radial-gradient(circle at 50% 0%, #0d1522 0%, var(--bg-base) 100%);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    font-size: 14px;
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+  /* Utilities */
+  .glass {
+    background: var(--bg-glass);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Layout */
+  .sidebar {
+    width: 260px;
+    height: 100%;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border-glass);
+    background: rgba(3, 5, 8, 0.6);
+    backdrop-filter: blur(20px);
+    z-index: 100;
+  }
+
+  .main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+  }
+  
+  /* Glowing Orbs Background */
+  .bg-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(100px);
+    opacity: 0.15;
+    z-index: -1;
+    pointer-events: none;
+  }
+  .orb-1 { top: -100px; left: -100px; width: 400px; height: 400px; background: var(--cyan); }
+  .orb-2 { bottom: -100px; right: -100px; width: 500px; height: 500px; background: var(--violet); }
+
+  /* Sidebar Elements */
+  .logo-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 40px;
+  }
+  .logo-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, var(--cyan), var(--violet));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    box-shadow: 0 0 20px var(--cyan-glow);
+  }
+  .logo-text {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    background: linear-gradient(to right, #fff, #94a3b8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .logo-sub {
+    font-size: 10px;
+    color: var(--cyan);
+    letter-spacing: 0.1em;
+    font-family: var(--font-mono);
+  }
+
+  nav {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+  }
+  .nav-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--text-muted);
+    margin: 16px 0 8px 8px;
+    font-weight: 600;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all 0.3s ease;
+    font-weight: 500;
+    border: 1px solid transparent;
+  }
+  .nav-item:hover {
+    background: var(--bg-glass);
+    color: var(--text-primary);
+    border-color: var(--border-glass-light);
+  }
+  .nav-item.active {
+    background: rgba(0, 229, 255, 0.1);
+    color: var(--cyan);
+    border-color: rgba(0, 229, 255, 0.2);
+    box-shadow: 0 0 15px rgba(0, 229, 255, 0.05);
+  }
+  .nav-icon {
+    font-size: 16px;
+    width: 20px;
+    text-align: center;
+  }
+
+  .system-status {
+    margin-top: auto;
+    padding: 16px;
+    background: var(--bg-glass);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-glass);
+  }
+  .status-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 10px var(--green);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 var(--green-glow); }
+    70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  }
+  .status-text {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .status-sub {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    padding-left: 16px;
+  }
+
+  /* Topbar */
+  .topbar {
+    height: 72px;
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border-glass);
+    background: rgba(3, 5, 8, 0.4);
+    backdrop-filter: blur(12px);
+    z-index: 10;
+  }
+  .top-title {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  .top-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    border: 1px solid;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .badge-outline {
+    background: transparent;
+    border-color: var(--border-glass);
+    color: var(--text-secondary);
+  }
+  .badge-cyan {
+    background: rgba(0, 229, 255, 0.1);
+    border-color: rgba(0, 229, 255, 0.3);
+    color: var(--cyan);
+  }
+  .badge-red {
+    background: rgba(255, 51, 68, 0.15);
+    border-color: rgba(255, 51, 68, 0.4);
+    color: var(--red);
+    box-shadow: 0 0 15px var(--red-glow);
+  }
+  .badge-amber {
+    background: rgba(255, 176, 32, 0.15);
+    border-color: rgba(255, 176, 32, 0.4);
+    color: var(--amber);
+  }
+  .badge-green {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.4);
+    color: var(--green);
+  }
+
+  /* Page Container */
+  .page-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 32px;
+    position: relative;
+  }
+  .page {
+    display: none;
+    animation: fadeIn 0.4s ease forwards;
+  }
+  .page.active {
+    display: block;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* KPI Cards */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .kpi-card {
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  .kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.3);
+  }
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .kpi-card.cyan::before { background: linear-gradient(90deg, var(--cyan), transparent); }
+  .kpi-card.red::before  { background: linear-gradient(90deg, var(--red), transparent); }
+  .kpi-card.amber::before { background: linear-gradient(90deg, var(--amber), transparent); }
+  .kpi-card.green::before { background: linear-gradient(90deg, var(--green), transparent); }
+  .kpi-card.violet::before { background: linear-gradient(90deg, var(--violet), transparent); }
+
+  .kpi-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .kpi-val {
+    font-family: var(--font-display);
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 1.1;
+  }
+  .kpi-val.cyan { color: var(--cyan); text-shadow: 0 0 20px var(--cyan-glow); }
+  .kpi-val.red  { color: var(--red); text-shadow: 0 0 20px var(--red-glow); }
+  .kpi-val.amber { color: var(--amber); text-shadow: 0 0 20px var(--amber-glow); }
+  .kpi-val.green { color: var(--green); text-shadow: 0 0 20px var(--green-glow); }
+  .kpi-val.violet { color: var(--violet); }
+  
+  .kpi-sub {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 8px;
+    font-family: var(--font-mono);
+  }
+
+  /* Main Grid */
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+
+  /* Camera Feed */
+  .camera-container {
+    position: relative;
+    border-radius: var(--radius-lg);
+    background: #000;
+    overflow: hidden;
+    aspect-ratio: 16/9;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+    border: 1px solid var(--border-glass);
+  }
+  .camera-feed {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: opacity 0.3s;
+  }
+  .camera-offline {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    background: rgba(0,0,0,0.8);
+  }
+  .camera-offline-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+  
+  .camera-overlay {
+    position: absolute;
+    top: 16px; left: 16px; right: 16px;
+    display: flex;
+    justify-content: space-between;
+    pointer-events: none;
+  }
+  .live-badge {
+    background: rgba(255, 51, 68, 0.9);
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    backdrop-filter: blur(4px);
+  }
+  .live-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #fff;
+    animation: blink 1s infinite;
+  }
+
+  /* Dynamic Borders */
+  .border-pulse {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-lg);
+    pointer-events: none;
+    transition: all 0.3s ease;
+  }
+  .border-pulse.critical {
+    border: 4px solid var(--red);
+    box-shadow: inset 0 0 50px rgba(255,51,68,0.3), 0 0 50px rgba(255,51,68,0.3);
+    animation: alert-flash 0.5s infinite alternate;
+  }
+  .border-pulse.alert {
+    border: 3px solid var(--amber);
+    box-shadow: inset 0 0 30px rgba(255,176,32,0.2), 0 0 30px rgba(255,176,32,0.2);
+    animation: alert-flash 1s infinite alternate;
+  }
+  @keyframes alert-flash {
+    from { opacity: 0.6; }
+    to { opacity: 1; }
+  }
+
+  /* Floating Chips */
+  .floating-chips {
+    position: absolute;
+    bottom: 16px; left: 16px; right: 16px;
+    display: flex;
+    gap: 12px;
+    pointer-events: none;
+  }
+  .chip {
+    background: rgba(10, 15, 25, 0.75);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 8px 12px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .chip-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
+  .chip-value { font-family: var(--font-mono); font-size: 14px; font-weight: 700; color: var(--text-primary); }
+
+  /* Panels / Cards */
+  .panel {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-glass);
+  }
+  .panel-title {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    font-family: var(--font-display);
+  }
+  .panel-action {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--cyan);
+    background: rgba(0, 229, 255, 0.1);
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.2s;
+    border: 1px solid rgba(0, 229, 255, 0.2);
+  }
+  .panel-action:hover { background: rgba(0, 229, 255, 0.2); }
+  .panel-body { flex: 1; position: relative; }
+
+  /* Detections List */
+  .detection-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 6px;
+  }
+  .detection-item {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: 0.2s;
+  }
+  .detection-item:hover { background: rgba(255,255,255,0.05); transform: translateX(4px); }
+  .det-type {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 4px;
+  }
+  .det-type.HUMAN { background: rgba(16, 185, 129, 0.15); color: var(--green); }
+  .det-type.ADULT { background: rgba(0, 229, 255, 0.15); color: var(--cyan); }
+  .det-type.CHILD { background: rgba(255, 176, 32, 0.15); color: var(--amber); }
+  
+  .det-dist { font-family: var(--font-mono); font-size: 16px; font-weight: 700; width: 60px; }
+  .det-conf { font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); }
+  .det-time { margin-left: auto; font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); }
+  
+  .det-flag { font-family: var(--font-mono); font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; margin-left: 8px; }
+  .det-flag.CRITICAL { background: rgba(255, 51, 68, 0.2); color: var(--red); box-shadow: 0 0 10px var(--red-glow); }
+  .det-flag.ALERT { background: rgba(255, 176, 32, 0.2); color: var(--amber); }
+
+  /* Charts */
+  .chart-wrapper {
+    position: relative;
+    width: 100%;
+    height: 240px;
+  }
+  
+  /* Buttons */
+  .btn {
+    padding: 10px 20px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-family: var(--font-sans);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+  }
+  .btn-primary { background: linear-gradient(135deg, var(--cyan), #00a8cc); color: #000; border: none; box-shadow: 0 4px 15px var(--cyan-glow); }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 229, 255, 0.5); }
+  
+  .btn-outline { background: transparent; color: var(--text-primary); border-color: var(--border-glass-light); }
+  .btn-outline:hover { background: var(--bg-glass-hover); }
+
+  /* Settings Controls */
+  .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .setting-group { margin-bottom: 24px; }
+  .setting-label { display: flex; justify-content: space-between; font-size: 13px; font-weight: 500; margin-bottom: 12px; color: var(--text-primary); }
+  .setting-val { font-family: var(--font-mono); color: var(--cyan); font-weight: 700; }
+  
+  input[type=range] {
+    -webkit-appearance: none; width: 100%; background: transparent;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%;
+    background: var(--cyan); cursor: pointer; margin-top: -6px;
+    box-shadow: 0 0 10px var(--cyan-glow);
+  }
+  input[type=range]::-webkit-slider-runnable-track {
+    width: 100%; height: 4px; cursor: pointer;
+    background: rgba(255,255,255,0.1); border-radius: 2px;
+  }
+
+  /* Table */
+  .data-table { width: 100%; border-collapse: collapse; font-family: var(--font-sans); }
+  .data-table th { text-align: left; padding: 12px; font-size: 11px; text-transform: uppercase; color: var(--text-muted); border-bottom: 1px solid var(--border-glass); }
+  .data-table td { padding: 12px; border-bottom: 1px solid var(--border-glass); font-size: 13px; }
+  .data-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  /* Info Grid */
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .info-card { background: rgba(0,0,0,0.2); border: 1px solid var(--border-glass); padding: 16px; border-radius: var(--radius-sm); }
+  .info-k { font-size: 10px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; letter-spacing: 0.1em; }
+  .info-v { font-family: var(--font-mono); font-size: 14px; font-weight: 700; color: var(--text-primary); }
+
+</style>
+</head>
+<body>
+  
+<!-- Background Orbs -->
+<div class="bg-orb orb-1"></div>
+<div class="bg-orb orb-2"></div>
+
+<div class="sidebar">
+  <div class="logo-container">
+    <div class="logo-icon">👁</div>
+    <div>
+      <div class="logo-text">EDGE EYE BUS PRO</div>
+      <div class="logo-sub">VEHICLE BLIND SPOT</div>
+    </div>
+  </div>
+  
+  <nav>
+    <div class="nav-label">Command Center</div>
+    <div class="nav-item active" onclick="navTo('live')"><span class="nav-icon">📹</span> Live Command</div>
+    <div class="nav-item" onclick="navTo('analytics')"><span class="nav-icon">📈</span> Analytics</div>
+    <div class="nav-item" onclick="navTo('accuracy')"><span class="nav-icon">🎯</span> Accuracy</div>
+    
+    <div class="nav-label">Data Hub</div>
+    <div class="nav-item" onclick="navTo('database')"><span class="nav-icon">🗄️</span> Database</div>
+    
+    <div class="nav-label">System</div>
+    <div class="nav-item" onclick="navTo('settings')"><span class="nav-icon">⚙️</span> Settings</div>
+  </nav>
+
+  <div class="system-status">
+    <div class="status-row">
+      <div class="status-dot" id="sys-status-dot"></div>
+      <div class="status-text" id="sys-status-text">Backend Connected</div>
+    </div>
+    <div class="status-sub" id="sys-fps">-- FPS</div>
+  </div>
+</div>
+
+<div class="main-content">
+  <div class="topbar">
+    <div class="top-title" id="page-title">Live Command Feed</div>
+    <div class="top-actions">
+      <div class="badge badge-outline" id="session-badge">SESSION: --</div>
+      <div class="badge badge-cyan" id="model-badge">YOLOv8n</div>
+      <div class="badge badge-green" id="state-badge">● CLEAR</div>
+    </div>
+  </div>
+
+  <div class="page-container">
+    
+    <!-- LIVE PAGE -->
+    <div id="page-live" class="page active">
+      <div class="kpi-grid">
+        <div class="kpi-card glass cyan">
+          <div class="kpi-title">Closest Distance</div>
+          <div class="kpi-val cyan" id="kpi-closest">---</div>
+          <div class="kpi-sub">Current Frame</div>
+        </div>
+        <div class="kpi-card glass red">
+          <div class="kpi-title">Critical Events</div>
+          <div class="kpi-val red" id="kpi-crit">0</div>
+          <div class="kpi-sub">≤ 100 cm Triggered</div>
+        </div>
+        <div class="kpi-card glass amber">
+          <div class="kpi-title">Alert Events</div>
+          <div class="kpi-val amber" id="kpi-warn">0</div>
+          <div class="kpi-sub">≤ 200 cm Triggered</div>
+        </div>
+        <div class="kpi-card glass green">
+          <div class="kpi-title">Total Detections</div>
+          <div class="kpi-val green" id="kpi-total">0</div>
+          <div class="kpi-sub">Session Lifetime</div>
+        </div>
+      </div>
+
+      <div class="dashboard-grid">
+        <div>
+          <div class="camera-container" id="camera-container">
+            <img id="cam-img" class="camera-feed" src="/video_feed" alt="Live Feed"
+                 onerror="handleCamError()" onload="handleCamSuccess()">
+            
+            <div class="camera-offline" id="cam-offline" style="display:none">
+              <div class="camera-offline-icon">📷</div>
+              <h2>Camera Feed Offline</h2>
+              <p style="margin-top: 8px; font-family: var(--font-mono);">Ensure server1.py is running on port 5000</p>
+            </div>
+            
+            <div class="camera-overlay">
+              <div class="live-badge"><div class="live-dot"></div>LIVE DETECT</div>
+            </div>
+            
+            <div class="floating-chips">
+              <div class="chip">
+                <span class="chip-label">FPS Monitor</span>
+                <span class="chip-value" id="chip-fps">--</span>
+              </div>
+              <div class="chip">
+                <span class="chip-label">Target Dist</span>
+                <span class="chip-value" id="chip-dist" style="color: var(--cyan)">---</span>
+              </div>
+              <div class="chip">
+                <span class="chip-label">AI Conf</span>
+                <span class="chip-value" id="chip-conf">--%</span>
+              </div>
+            </div>
+            
+            <div class="border-pulse" id="border-pulse"></div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 24px;">
+          <div class="panel glass">
+            <div class="panel-header">
+              <span class="panel-title">Real-Time Distance</span>
+            </div>
+            <div class="panel-body">
+              <div class="chart-wrapper" style="height: 180px;">
+                <canvas id="live-chart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel glass" style="flex: 1;">
+            <div class="panel-header">
+              <span class="panel-title">Event Stream</span>
+              <span class="panel-action" id="det-count-badge">0 Dets</span>
+            </div>
+            <div class="panel-body">
+              <div class="detection-list" id="detection-list">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ANALYTICS PAGE -->
+    <div id="page-analytics" class="page">
+      <div class="kpi-grid">
+        <div class="kpi-card glass cyan"><div class="kpi-title">Min Distance</div><div class="kpi-val cyan" id="an-min">--</div></div>
+        <div class="kpi-card glass amber"><div class="kpi-title">Avg Distance</div><div class="kpi-val amber" id="an-avg">--</div></div>
+        <div class="kpi-card glass violet"><div class="kpi-title">Avg Confidence</div><div class="kpi-val violet" id="an-conf">--%</div></div>
+      </div>
+      
+      <div class="panel glass" style="margin-bottom: 24px;">
+        <div class="panel-header"><span class="panel-title">Session Distance Overview</span></div>
+        <div class="panel-body">
+          <div class="chart-wrapper" style="height: 350px;">
+            <canvas id="analytics-chart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACCURACY PAGE -->
+    <div id="page-accuracy" class="page">
+      <div class="kpi-grid">
+        <div class="kpi-card glass cyan"><div class="kpi-title">True Positive Rate</div><div class="kpi-val cyan" id="acc-tpr">--%</div></div>
+        <div class="kpi-card glass green"><div class="kpi-title">Overall Accuracy</div><div class="kpi-val green" id="acc-overall">--%</div></div>
+        <div class="kpi-card glass amber"><div class="kpi-title">False Alarm Rate</div><div class="kpi-val amber" id="acc-far">--%</div></div>
+      </div>
+      
+      <div class="panel glass">
+        <div class="panel-header"><span class="panel-title">Real-Time Confusion Matrix (Simulated)</span></div>
+        <div class="panel-body">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div style="background: rgba(0,255,170,0.1); border: 1px solid var(--green); padding: 20px; border-radius: 8px; text-align: center;">
+              <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">True Positive (Correct Alerts)</div>
+              <div id="cm-tp" style="font-size: 32px; font-weight: bold; color: var(--green); margin-top: 8px;">0</div>
+            </div>
+            <div style="background: rgba(255,176,32,0.1); border: 1px solid var(--amber); padding: 20px; border-radius: 8px; text-align: center;">
+              <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">False Negative (Missed)</div>
+              <div id="cm-fn" style="font-size: 32px; font-weight: bold; color: var(--amber); margin-top: 8px;">0</div>
+            </div>
+            <div style="background: rgba(255,51,68,0.1); border: 1px solid var(--red); padding: 20px; border-radius: 8px; text-align: center;">
+              <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">False Positive (False Alarm)</div>
+              <div id="cm-fp" style="font-size: 32px; font-weight: bold; color: var(--red); margin-top: 8px;">0</div>
+            </div>
+            <div style="background: rgba(0,229,255,0.1); border: 1px solid var(--cyan); padding: 20px; border-radius: 8px; text-align: center;">
+              <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">True Negative (Correct Safe)</div>
+              <div id="cm-tn" style="font-size: 32px; font-weight: bold; color: var(--cyan); margin-top: 8px;">0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DATABASE PAGE -->
+    <div id="page-database" class="page">
+      <div class="panel glass">
+        <div class="panel-header">
+          <span class="panel-title">Edge_Eye Database (SQLite)</span>
+          <div style="display: flex; gap: 12px;">
+            <button class="btn btn-outline" onclick="exportData()">Download CSV</button>
+            <button class="btn btn-primary" onclick="window.open('/api/db/export')">Download .db</button>
+          </div>
+        </div>
+        <div class="panel-body" style="max-height: 600px; overflow-y: auto;">
+          <table class="data-table">
+            <thead>
+              <tr><th>Log ID</th><th>Timestamp</th><th>Type</th><th>Distance</th><th>Confidence</th><th>Status Frame</th></tr>
+            </thead>
+            <tbody id="db-table-body">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS PAGE -->
+    <div id="page-settings" class="page">
+      <div class="settings-grid">
+        <div class="panel glass">
+          <div class="panel-header"><span class="panel-title">AI Calibration & Parameters</span></div>
+          <div class="panel-body">
+            
+            <div class="setting-group">
+              <div class="setting-label"><span>Alert Distance Boundary</span><span class="setting-val" id="val-alert">200 cm</span></div>
+              <input type="range" id="cfg-alert" min="50" max="400" value="200" oninput="document.getElementById('val-alert').textContent=this.value+' cm'">
+            </div>
+            
+            <div class="setting-group">
+              <div class="setting-label"><span>Critical Distance Boundary</span><span class="setting-val" id="val-crit">100 cm</span></div>
+              <input type="range" id="cfg-crit" min="20" max="200" value="100" oninput="document.getElementById('val-crit').textContent=this.value+' cm'">
+            </div>
+            
+            <div class="setting-group">
+              <div class="setting-label"><span>Minimum AI Confidence (%)</span><span class="setting-val" id="val-conf">45%</span></div>
+              <input type="range" id="cfg-conf" min="10" max="90" value="45" oninput="document.getElementById('val-conf').textContent=this.value+'%'">
+            </div>
+            
+            <div class="setting-group">
+              <div class="setting-label"><span>Camera Focal Length</span><span class="setting-val" id="val-focal">700 px</span></div>
+              <input type="range" id="cfg-fl" min="400" max="1200" value="700" oninput="document.getElementById('val-focal').textContent=this.value+' px'">
+            </div>
+
+            <div class="setting-group" style="margin-bottom: 32px;">
+              <div class="setting-label"><span>Bus Camera Mount Height</span><span class="setting-val" id="val-camh">300 cm</span></div>
+              <input type="range" id="cfg-camh" min="100" max="500" value="300" oninput="document.getElementById('val-camh').textContent=this.value+' cm'">
+            </div>
+
+            <div style="display: flex; gap: 16px;">
+              <button class="btn btn-primary" onclick="saveConfig()">Apply AI Configuration</button>
+              <button class="btn btn-outline" onclick="calibrate()">Auto-Calibrate (150cm)</button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="panel glass">
+          <div class="panel-header"><span class="panel-title">System Information</span></div>
+          <div class="panel-body">
+            <div class="info-grid">
+              <div class="info-card"><div class="info-k">AI Model Active</div><div class="info-v" id="sys-model">YOLOv8n</div></div>
+              <div class="info-card"><div class="info-k">Arduino Interface</div><div class="info-v" id="sys-arduino">Not Connected</div></div>
+              <div class="info-card"><div class="info-k">Camera Resolution</div><div class="info-v" id="sys-res">1280x720</div></div>
+              <div class="info-card"><div class="info-k">Dashboard Mode</div><div class="info-v" style="color: var(--cyan)">PREMIUM GLASS</div></div>
+            </div>
+            
+            <div style="margin-top: 32px; padding: 16px; background: rgba(0,229,255,0.05); border-left: 3px solid var(--cyan); border-radius: 4px;">
+              <h4 style="margin-bottom: 8px; color: var(--text-primary); font-family: var(--font-display);">API Endpoints</h4>
+              <ul style="list-style: none; display: flex; flex-direction: column; gap: 8px; font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary);">
+                <li><span style="color:var(--cyan)">GET</span> /api/status - Live JSON polling</li>
+                <li><span style="color:var(--cyan)">GET</span> /api/detections - SQLite read</li>
+                <li><span style="color:var(--amber)">POST</span> /api/config - Write parameters</li>
+                <li><span style="color:var(--cyan)">GET</span> /api/stats/summary - Session metrics</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ---------- UI & Navigation ----------
+const pageMap = {
+  'live': 'Live Command Feed',
+  'analytics': 'Detection Analytics',
+  'database': 'System Database',
+  'settings': 'Configuration Hub'
+};
+
+function navTo(pageId) {
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  document.getElementById('page-' + pageId).classList.add('active');
+  
+  document.getElementById('page-title').textContent = pageMap[pageId];
+  
+  if (pageId === 'analytics') renderAnalyticsChart();
+  if (pageId === 'database') loadDatabase();
+  if (pageId === 'accuracy') updateAccuracy();
+}
+
+// ---------- API Polling & State ----------
+let liveDetections = [];
+let liveChartObj = null;
+let analyticsChartObj = null;
+let isCamOnline = true;
+let currentSession = null;
+
+function handleCamError() {
+  document.getElementById('cam-img').style.display = 'none';
+  document.getElementById('cam-offline').style.display = 'flex';
+  isCamOnline = false;
+  setOffline();
+}
+function handleCamSuccess() {
+  document.getElementById('cam-img').style.display = 'block';
+  document.getElementById('cam-offline').style.display = 'none';
+  isCamOnline = true;
+}
+
+function setOffline() {
+  document.getElementById('sys-status-dot').style.background = 'var(--red)';
+  document.getElementById('sys-status-dot').style.animation = 'none';
+  document.getElementById('sys-status-text').textContent = 'Backend Offline';
+  document.getElementById('state-badge').className = 'badge badge-outline';
+  document.getElementById('state-badge').textContent = '● OFFLINE';
+  document.getElementById('border-pulse').className = 'border-pulse';
+}
+
+function setOnline(statusObj) {
+  document.getElementById('sys-status-dot').style.background = 'var(--green)';
+  document.getElementById('sys-status-dot').style.animation = 'pulse 2s infinite';
+  document.getElementById('sys-status-text').textContent = 'System Online';
+
+  // Badges & Status
+  document.getElementById('sys-fps').textContent = statusObj.fps.toFixed(1) + ' FPS';
+  document.getElementById('chip-fps').textContent = statusObj.fps.toFixed(1);
+  document.getElementById('model-badge').textContent = statusObj.model || 'YOLOv8n';
+  currentSession = statusObj.session_id;
+  document.getElementById('session-badge').textContent = 'ID: ' + (currentSession ? currentSession.slice(-8) : '---');
+  
+  document.getElementById('sys-model').textContent = statusObj.model || 'YOLOv8n';
+  document.getElementById('sys-arduino').textContent = statusObj.arduino || 'Not Connected';
+  document.getElementById('sys-res').textContent = statusObj.cam_resolution || '---';
+
+  // KPIs
+  let dist = statusObj.closest_cm || '---';
+  document.getElementById('kpi-closest').textContent = dist;
+  document.getElementById('chip-dist').textContent = dist !== '---' ? dist + ' cm' : '---';
+  
+  document.getElementById('kpi-total').textContent = statusObj.total_detections || 0;
+  document.getElementById('kpi-warn').textContent = statusObj.total_alerts || 0;
+  document.getElementById('kpi-crit').textContent = statusObj.total_critical || 0;
+
+  // Visual State
+  let state = statusObj.status;
+  let sBadge = document.getElementById('state-badge');
+  let bPulse = document.getElementById('border-pulse');
+  
+  if (state === 'CRITICAL') {
+    sBadge.className = 'badge badge-red'; sBadge.textContent = '⚠ CRITICAL';
+    bPulse.className = 'border-pulse critical';
+    document.getElementById('kpi-closest').style.color = 'var(--red)';
+    document.getElementById('kpi-closest').style.textShadow = '0 0 20px var(--red-glow)';
+  } else if (state === 'ALERT') {
+    sBadge.className = 'badge badge-amber'; sBadge.textContent = '⚠ ALERT';
+    bPulse.className = 'border-pulse alert';
+    document.getElementById('kpi-closest').style.color = 'var(--amber)';
+    document.getElementById('kpi-closest').style.textShadow = '0 0 20px var(--amber-glow)';
+  } else {
+    sBadge.className = 'badge badge-green'; sBadge.textContent = '● CLEAR';
+    bPulse.className = 'border-pulse';
+    document.getElementById('kpi-closest').style.color = 'var(--cyan)';
+    document.getElementById('kpi-closest').style.textShadow = '0 0 20px var(--cyan-glow)';
+  }
+}
+
+async function fetchStatus() {
+  try {
+    const res = await fetch('/api/status');
+    if (!res.ok) throw new Error('Network err');
+    const data = await res.json();
+    setOnline(data);
+  } catch (err) {
+    if(!isCamOnline) setOffline();
+  }
+}
+
+async function fetchDetections() {
+  try {
+    const res = await fetch('/api/detections?limit=100');
+    if (!res.ok) return;
+    liveDetections = await res.json();
+    updateLiveUI();
+    if(document.getElementById('page-accuracy').classList.contains('active')) {
+      updateAccuracy();
+    }
+  } catch (err) {}
+}
+
+async function fetchSummary() {
+  try {
+    const res = await fetch('/api/stats/summary');
+    if (!res.ok) return;
+    const data = await res.json();
+    document.getElementById('an-min').textContent = (data.min_dist || 0) + ' cm';
+    document.getElementById('an-avg').textContent = Math.round(data.avg_dist || 0) + ' cm';
+    document.getElementById('an-conf').textContent = Math.round(data.avg_conf || 0) + '%';
+  } catch(e) {}
+}
+
+// ---------- UI Renderers ----------
+
+function updateLiveUI() {
+  if (liveDetections.length === 0) return;
+  document.getElementById('det-count-badge').textContent = liveDetections.length + ' Recorded';
+  
+  if(liveDetections[0]) {
+    document.getElementById('chip-conf').textContent = Math.round(liveDetections[0].confidence * 100) + '%';
+  }
+
+  // Build List
+  let listHtml = '';
+  // show latest 15
+  liveDetections.slice(0, 15).forEach(d => {
+    let flagHtml = '';
+    if(d.alert_level === 'CRITICAL') flagHtml = '<span class="det-flag CRITICAL">CRITICAL</span>';
+    else if (d.alert_level === 'ALERT') flagHtml = '<span class="det-flag ALERT">ALERT</span>';
+    
+    let timeRaw = (d.timestamp || '').split(' ')[1] || d.timestamp;
+    
+    listHtml += `
+      <div class="detection-item">
+        <span class="det-type ${d.type}">${d.type}</span>
+        <span class="det-dist" style="color: ${d.alert_level === 'CRITICAL' ? 'var(--red)' : d.alert_level === 'ALERT' ? 'var(--amber)' : '#fff'}">${d.distance_cm} cm</span>
+        <span class="det-conf">${Math.round(d.confidence*100)}% conf</span>
+        ${flagHtml}
+        <span class="det-time">${timeRaw}</span>
+      </div>
+    `;
+  });
+  document.getElementById('detection-list').innerHTML = listHtml;
+
+  // Build Chart
+  let rev = [...liveDetections].slice(0, 60).reverse();
+  updateLiveChart(rev);
+}
+
+// ---------- Chart Setup ----------
+Chart.defaults.color = '#94a3b8';
+Chart.defaults.font.family = "'JetBrains Mono', monospace";
+Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(15, 23, 42, 0.9)';
+Chart.defaults.plugins.tooltip.borderColor = 'rgba(0, 229, 255, 0.2)';
+Chart.defaults.plugins.tooltip.borderWidth = 1;
+
+function initLiveChart() {
+  const ctx = document.getElementById('live-chart').getContext('2d');
+  
+  let gradient = ctx.createLinearGradient(0, 0, 0, 180);
+  gradient.addColorStop(0, 'rgba(0, 229, 255, 0.2)');
+  gradient.addColorStop(1, 'rgba(0, 229, 255, 0)');
+
+  liveChartObj = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [
+        {
+          label: 'Distance (cm)',
+          borderColor: '#00e5ff',
+          backgroundColor: gradient,
+          borderWidth: 2,
+          pointRadius: 0,
+          fill: true,
+          tension: 0.4,
+          data: []
+        },
+        {
+          label: 'Alert', data: [], borderColor: '#ffb020', borderDash: [5,5], borderWidth: 1, pointRadius: 0, fill: false
+        },
+        {
+          label: 'Critical', data: [], borderColor: '#ff3344', borderDash: [5,5], borderWidth: 1, pointRadius: 0, fill: false
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { display: false },
+        y: { 
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          min: 0, max: 400
+        }
+      }
+    }
+  });
+}
+
+function updateLiveChart(dataArr) {
+  if (!liveChartObj) return;
+  let labels = dataArr.map((_, i) => i);
+  let dists = dataArr.map(d => d.distance_cm);
+  
+  liveChartObj.data.labels = labels;
+  liveChartObj.data.datasets[0].data = dists;
+  liveChartObj.data.datasets[1].data = labels.map(()=>200);
+  liveChartObj.data.datasets[2].data = labels.map(()=>100);
+  liveChartObj.update('none');
+}
+
+function renderAnalyticsChart() {
+  if (analyticsChartObj) analyticsChartObj.destroy();
+  if (liveDetections.length === 0) return;
+  
+  let rev = [...liveDetections].reverse();
+  let labels = rev.map(d=>(d.timestamp||'').split(' ')[1] || d.timestamp);
+  let dists = rev.map(d=>d.distance_cm);
+  
+  const ctx = document.getElementById('analytics-chart').getContext('2d');
+  analyticsChartObj = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Detection History',
+        data: dists,
+        borderColor: '#8b5cf6',
+        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+        fill: true, tension: 0.3, borderWidth: 2, pointRadius: 1
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { maxTicksLimit: 10 } },
+        y: { grid: { color: 'rgba(255,255,255,0.05)' } }
+      }
+    }
+  });
+}
+
+function updateAccuracy() {
+  if (liveDetections.length === 0) return;
+  let tp = 0, fp = 0, fn = 0, tn = 0;
+  
+  let alert_dist = parseInt(document.getElementById('cfg-alert').value) || 200;
+  
+  liveDetections.forEach(d => {
+    let is_alert = (d.alert_level === 'CRITICAL' || d.alert_level === 'ALERT');
+    
+    // Simulating Real-World accuracy splits based on confidence / boundary margins
+    if (is_alert && d.confidence >= 0.50) tp++;
+    else if (is_alert && d.confidence < 0.50) fp++;
+    else if (!is_alert && d.distance_cm <= alert_dist + 50) fn++; 
+    else tn++;
+  });
+  
+  document.getElementById('cm-tp').textContent = tp;
+  document.getElementById('cm-fp').textContent = fp;
+  document.getElementById('cm-fn').textContent = fn;
+  document.getElementById('cm-tn').textContent = tn;
+  
+  let total = tp + fp + fn + tn;
+  let tpr = tp + fn > 0 ? (tp / (tp + fn)) * 100 : 100;
+  let far = tp + fp > 0 ? (fp / (tp + fp)) * 100 : 0;
+  let overall = total > 0 ? ((tp + tn) / total) * 100 : 100;
+  
+  document.getElementById('acc-tpr').textContent = tpr.toFixed(1) + '%';
+  document.getElementById('acc-overall').textContent = overall.toFixed(1) + '%';
+  document.getElementById('acc-far').textContent = far.toFixed(1) + '%';
+}
+
+// ---------- Database Page ----------
+async function loadDatabase() {
+  let html = '';
+  liveDetections.forEach((d, i) => {
+    let tColor = d.alert_level === 'CRITICAL' ? 'var(--red)' : d.alert_level === 'ALERT' ? 'var(--amber)' : 'var(--cyan)';
+    html += `
+      <tr>
+        <td style="color: var(--text-muted)">${d.id}</td>
+        <td style="font-family: var(--font-mono)">${d.timestamp}</td>
+        <td>${d.type}</td>
+        <td style="font-family: var(--font-mono); color: ${tColor}; font-weight: 700;">${d.distance_cm} cm</td>
+        <td style="font-family: var(--font-mono)">${Math.round(d.confidence*100)}%</td>
+        <td><span class="det-flag ${d.alert_level}">${d.alert_level}</span></td>
+      </tr>
+    `;
+  });
+  document.getElementById('db-table-body').innerHTML = html;
+}
+
+function exportData() {
+  if(!liveDetections.length) return;
+  let csv = "ID,Timestamp,Type,Distance,Confidence,AlertLevel\n";
+  liveDetections.forEach(d => {
+    csv += `${d.id},${d.timestamp},${d.type},${d.distance_cm},${d.confidence},${d.alert_level}\n`;
+  });
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.setAttribute('hidden', '');
+  a.setAttribute('href', url);
+  a.setAttribute('download', 'edge_eye_detections.csv');
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+// ---------- Config API ----------
+async function saveConfig() {
+  let cfg = {
+    alert_distance_cm: parseInt(document.getElementById('cfg-alert').value),
+    critical_distance_cm: parseInt(document.getElementById('cfg-crit').value),
+    confidence_threshold: parseFloat(document.getElementById('cfg-conf').value) / 100.0,
+    focal_length: parseFloat(document.getElementById('cfg-fl').value),
+    camera_height_cm: parseInt(document.getElementById('cfg-camh').value)
+  };
+  try {
+    await fetch('/api/config', {
+      method: 'POST',
+      body: JSON.stringify(cfg),
+      headers: {'Content-Type': 'application/json'}
+    });
+    alert("Premium AI Configuration Saved Successfully!");
+  } catch(e) {
+    alert("Connection Error. Ensure server is running.");
+  }
+}
+
+async function calibrate() {
+  try {
+    let res = await fetch('/api/calibrate', { method: 'POST' });
+    let data = await res.json();
+    alert("Calibration requested: " + data.message);
+  } catch(e) {
+    alert("Connection Error.");
+  }
+}
+
+async function loadConfig() {
+  try {
+    let res = await fetch('/api/config');
+    let cfg = await res.json();
+    if(cfg.alert_distance_cm) {
+      document.getElementById('cfg-alert').value = cfg.alert_distance_cm;
+      document.getElementById('val-alert').textContent = cfg.alert_distance_cm + ' cm';
+    }
+    if(cfg.critical_distance_cm) {
+      document.getElementById('cfg-crit').value = cfg.critical_distance_cm;
+      document.getElementById('val-crit').textContent = cfg.critical_distance_cm + ' cm';
+    }
+    if(cfg.confidence_threshold) {
+      let val = Math.round(cfg.confidence_threshold * 100);
+      document.getElementById('cfg-conf').value = val;
+      document.getElementById('val-conf').textContent = val + '%';
+    }
+    if(cfg.focal_length) {
+      document.getElementById('cfg-fl').value = cfg.focal_length;
+      document.getElementById('val-focal').textContent = cfg.focal_length + ' px';
+    }
+    if(cfg.camera_height_cm) {
+      document.getElementById('cfg-camh').value = cfg.camera_height_cm;
+      document.getElementById('val-camh').textContent = cfg.camera_height_cm + ' cm';
+    }
+  } catch(e) {}
+}
+
+// ---------- Initialization ----------
+window.onload = () => {
+  initLiveChart();
+  loadConfig();
+  
+  // Fast polling loop
+  setInterval(() => {
+    fetchStatus();
+  }, 1000);
+  
+  // Slower DB polling
+  setInterval(() => {
+    fetchDetections();
+    fetchSummary();
+  }, 2000);
+  
+  // Initial fetch
+  fetchStatus();
+  fetchDetections();
+  fetchSummary();
+};
+
+</script>
+</body>
+</html>

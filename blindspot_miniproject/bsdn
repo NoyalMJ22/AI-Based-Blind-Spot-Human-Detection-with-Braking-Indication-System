@@ -1,0 +1,309 @@
+import cv2
+import numpy as np
+import threading
+import time
+import pygame
+from ultralytics import YOLO
+from flask import Flask, Response
+from flask_cors import CORS
+
+# --------------------------------------------------
+# SOUND SYSTEM
+# --------------------------------------------------
+pygame.mixer.pre_init(44100, -16, 2, 512)
+pygame.init()
+
+class WarningSound:
+
+    def __init__(self):
+        self.active = False
+
+    def play(self):
+        if self.active:
+            return
+        self.active = True
+        threading.Thread(target=self._loop, daemon=True).start()
+
+    def stop(self):
+        self.active = False
+
+    def _loop(self):
+
+        sample_rate = 44100
+        duration = 0.2
+
+        t = np.linspace(0, duration, int(sample_rate * duration), False)
+        wave = (np.sin(2 * np.pi * 1200 * t) * 32767).astype(np.int16)
+
+        stereo_wave = np.column_stack((wave, wave))
+        sound = pygame.sndarray.make_sound(stereo_wave)
+
+        while self.active:
+            sound.play()
+            pygame.time.wait(250)
+
+# --------------------------------------------------
+# CONFIG
+# --------------------------------------------------
+class Config:
+
+    source = 0
+    width = 1280
+    height = 720
+
+    model = "yolov8n.pt"
+
+    focal_length_px = 700
+
+    adult_height = 1.7
+    child_height = 1.1
+
+    critical_dist = 2.5
+    warning_dist = 3.5
+    caution_dist = 4.5
+    safe_dist = 5.5
+
+# --------------------------------------------------
+# DISTANCE ESTIMATION
+# --------------------------------------------------
+def estimate_distance(box_height, real_height, focal):
+
+    if box_height == 0:
+        return 999
+
+    return (real_height * focal) / box_height
+
+# --------------------------------------------------
+# MAIN ENGINE
+# --------------------------------------------------
+class BlindSpotGuardian:
+
+    def __init__(self, cfg):
+
+        self.cfg = cfg
+        self.model = YOLO(cfg.model)
+        self.warning = WarningSound()
+
+        self.frame = None
+        self.running = False
+
+    def run(self):
+
+        self.running = True
+
+        cap = cv2.VideoCapture(self.cfg.source)
+
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.cfg.width)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.cfg.height)
+
+        # FULLSCREEN WINDOW
+        cv2.namedWindow("BlindSpot Guardian", cv2.WND_PROP_FULLSCREEN)
+        cv2.setWindowProperty(
+            "BlindSpot Guardian",
+            cv2.WND_PROP_FULLSCREEN,
+            cv2.WINDOW_FULLSCREEN
+        )
+
+        prev_time = 0
+
+        while self.running:
+
+            ret, frame = cap.read()
+
+            if not ret:
+                continue
+
+            frame = cv2.flip(frame, 1)
+
+            h, w = frame.shape[:2]
+
+            # FPS
+            current_time = time.time()
+            fps = 1 / (current_time - prev_time) if prev_time != 0 else 0
+            prev_time = current_time
+
+            results = self.model.predict(frame, classes=[0], conf=0.35, verbose=False)
+
+            people_count = 0
+            nearest_dist = 999
+            critical_detected = False
+
+            for r in results:
+
+                for box in r.boxes:
+
+                    people_count += 1
+
+                    x1, y1, x2, y2 = box.xyxy[0].tolist()
+
+                    box_height = y2 - y1
+                    height_ratio = box_height / frame.shape[0]
+
+                    if height_ratio < 0.4:
+                        person_type = "CHILD"
+                        real_height = self.cfg.child_height
+                    else:
+                        person_type = "ADULT"
+                        real_height = self.cfg.adult_height
+
+                    dist = estimate_distance(
+                        box_height,
+                        real_height,
+                        self.cfg.focal_length_px
+                    )
+
+                    nearest_dist = min(nearest_dist, dist)
+
+                    if dist < self.cfg.critical_dist:
+                        risk = "CRITICAL"
+                        color = (0,0,255)
+                        critical_detected = True
+
+                    elif dist < self.cfg.warning_dist:
+                        risk = "WARNING"
+                        color = (0,165,255)
+
+                    elif dist < self.cfg.caution_dist:
+                        risk = "CAUTION"
+                        color = (0,255,255)
+
+                    elif dist < self.cfg.safe_dist:
+                        risk = "SAFE"
+                        color = (0,255,0)
+
+                    else:
+                        risk = "OUT"
+                        color = (200,255,200)
+
+                    cv2.rectangle(frame,(int(x1),int(y1)),(int(x2),int(y2)),color,3)
+
+                    label = f"{person_type} {risk}"
+
+                    cv2.putText(frame,label,(int(x1),int(y1)-10),
+                                cv2.FONT_HERSHEY_SIMPLEX,0.7,color,2)
+
+            # SOUND ALERT
+            if critical_detected:
+                self.warning.play()
+            else:
+                self.warning.stop()
+
+            # --------------------------------------------------
+            # UI
+            # --------------------------------------------------
+
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            title = "BLIND SPOT HUMAN DETECTION SYSTEM"
+
+            text_size = cv2.getTextSize(title,font,1.2,3)[0]
+            text_x = (w - text_size[0]) // 2
+
+            cv2.rectangle(frame,(0,0),(w,70),(0,0,0),-1)
+            cv2.putText(frame,title,(text_x,45),font,1.2,(0,255,255),3)
+
+            # SYSTEM PANEL
+            cv2.rectangle(frame,(20,80),(300,190),(0,0,0),-1)
+
+            cv2.putText(frame,"SYSTEM STATUS",(30,105),font,0.6,(255,255,255),2)
+            cv2.putText(frame,f"FPS: {int(fps)}",(30,130),font,0.6,(0,255,0),2)
+            cv2.putText(frame,"AI: YOLOv8",(30,155),font,0.6,(0,255,0),2)
+            cv2.putText(frame,"Camera: ACTIVE",(30,180),font,0.6,(0,255,0),2)
+
+            # PEOPLE COUNT
+            cv2.putText(frame,f"PEOPLE: {people_count}",
+                        (w-250,100),font,0.8,(255,255,255),2)
+
+            # ALERT MESSAGE
+            if critical_detected:
+
+                cv2.rectangle(frame,(w//2-300,h-120),(w//2+300,h-70),(0,0,255),-1)
+
+                cv2.putText(frame,"WARNING HUMAN TOO CLOSE",
+                            (w//2-250,h-85),font,0.9,(255,255,255),3)
+
+            # DISTANCE RISK BAR
+            bar_width = 500
+            bar_x = (w - bar_width)//2
+            bar_y = h - 40
+
+            cv2.rectangle(frame,(bar_x,bar_y),(bar_x+bar_width,bar_y+20),(50,50,50),-1)
+
+            if nearest_dist < self.cfg.critical_dist:
+                width = bar_width
+                color = (0,0,255)
+
+            elif nearest_dist < self.cfg.warning_dist:
+                width = int(bar_width*0.75)
+                color = (0,165,255)
+
+            elif nearest_dist < self.cfg.caution_dist:
+                width = int(bar_width*0.5)
+                color = (0,255,255)
+
+            elif nearest_dist < self.cfg.safe_dist:
+                width = int(bar_width*0.25)
+                color = (0,255,0)
+
+            else:
+                width = 40
+                color = (200,255,200)
+
+            cv2.rectangle(frame,(bar_x,bar_y),(bar_x+width,bar_y+20),color,-1)
+
+            self.frame = frame
+
+            cv2.imshow("BlindSpot Guardian", frame)
+
+            if cv2.waitKey(1) & 0xFF == ord("q"):
+                break
+
+        cap.release()
+        cv2.destroyAllWindows()
+
+# --------------------------------------------------
+# WEB STREAM
+# --------------------------------------------------
+def start_web(engine):
+
+    app = Flask(__name__)
+    CORS(app)
+
+    def generate():
+
+        while True:
+
+            if engine.frame is None:
+                continue
+
+            ret, buffer = cv2.imencode(".jpg", engine.frame)
+            frame = buffer.tobytes()
+
+            yield (b"--frame\r\n"
+                   b"Content-Type: image/jpeg\r\n\r\n" +
+                   frame +
+                   b"\r\n")
+
+            time.sleep(0.03)
+
+    @app.route("/")
+    def home():
+        return "<h2>BlindSpot Guardian Live Feed</h2><img src='/video'>"
+
+    @app.route("/video")
+    def video():
+        return Response(generate(),
+                        mimetype="multipart/x-mixed-replace; boundary=frame")
+
+    app.run(host="0.0.0.0", port=5050)
+
+# --------------------------------------------------
+# MAIN
+# --------------------------------------------------
+if __name__ == "__main__":
+
+    cfg = Config()
+    engine = BlindSpotGuardian(cfg)
+
+    threading.Thread(target=start_web,args=(engine,),daemon=True).start()
+
+    engine.run()

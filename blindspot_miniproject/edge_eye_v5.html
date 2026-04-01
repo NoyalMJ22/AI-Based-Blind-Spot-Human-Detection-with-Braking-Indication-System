@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EDGE EYE v5 — Blind Spot AI Command Center</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg0:#020407;--bg1:#060b10;--bg2:#0a1018;--bg3:#0f1820;--bg4:#162030;--bg5:#1e2d3d;
+  --line:rgba(0,220,255,0.07);--line2:rgba(0,220,255,0.13);
+  --tx0:#c8dde8;--tx1:#5d8a9e;--tx2:#2d4f60;
+  --cyan:#00dcff;--cyan2:#00a8c8;
+  --red:#ff2244;--red2:#cc1133;
+  --amber:#ffaa00;--amber2:#cc8800;
+  --green:#00ffaa;--green2:#00cc88;
+  --violet:#9b6dff;--pink:#ff4daa;
+  --mono:'Share Tech Mono',monospace;
+  --sans:'Exo 2',sans-serif;
+  --r:8px;--r2:5px;
+  --glow-cyan:0 0 12px rgba(0,220,255,0.3);
+  --glow-red:0 0 14px rgba(255,34,68,0.4);
+  --glow-green:0 0 12px rgba(0,255,170,0.25);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--tx0);font-family:var(--sans);font-size:13px}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,220,255,0.012) 3px,rgba(0,220,255,0.012) 4px);}
+
+/* OFFLINE BANNER */
+#conn-banner{
+  position:fixed;top:0;left:0;right:0;z-index:9999;
+  background:rgba(255,34,68,0.92);color:#fff;
+  text-align:center;padding:7px;font-size:11.5px;font-weight:700;
+  font-family:var(--mono);letter-spacing:.06em;display:none;
+}
+
+/* CRIT OVERLAY */
+#crit-overlay{
+  position:fixed;inset:0;z-index:5;pointer-events:none;
+  border:3px solid var(--red);box-shadow:inset 0 0 60px rgba(255,34,68,0.15);
+  display:none;animation:crit-pulse 0.6s ease-in-out infinite alternate;
+}
+@keyframes crit-pulse{from{opacity:0.4}to{opacity:1}}
+
+/* SHELL */
+.shell{display:flex;height:100vh;position:relative;z-index:1}
+
+/* SIDEBAR */
+.sidebar{
+  width:218px;min-width:218px;
+  background:linear-gradient(180deg,var(--bg1) 0%,var(--bg0) 100%);
+  border-right:1px solid var(--line2);
+  display:flex;flex-direction:column;z-index:20;position:relative;
+}
+.sidebar::after{content:'';position:absolute;top:0;right:0;bottom:0;width:1px;
+  background:linear-gradient(180deg,transparent,var(--cyan),transparent);opacity:0.3;}
+.logo-area{padding:16px 14px 12px;border-bottom:1px solid var(--line)}
+.logo-row{display:flex;align-items:center;gap:10px}
+.logo-hex{
+  width:40px;height:40px;background:transparent;border:2px solid var(--cyan);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;
+  box-shadow:var(--glow-cyan),inset 0 0 12px rgba(0,220,255,0.07);
+  animation:hex-pulse 3s ease-in-out infinite;
+}
+@keyframes hex-pulse{0%,100%{box-shadow:var(--glow-cyan),inset 0 0 12px rgba(0,220,255,0.07)}
+  50%{box-shadow:0 0 22px rgba(0,220,255,0.5),inset 0 0 18px rgba(0,220,255,0.13)}}
+.logo-name{font-family:var(--mono);font-size:16px;letter-spacing:.1em;color:var(--cyan);text-shadow:0 0 8px rgba(0,220,255,0.5)}
+.logo-sub{font-size:9px;color:var(--tx2);letter-spacing:.18em;text-transform:uppercase;margin-top:2px}
+nav{padding:8px 0;flex:1;overflow-y:auto}
+.nav-sec{padding:9px 14px 3px;font-size:8.5px;font-weight:600;color:var(--tx2);letter-spacing:.18em;text-transform:uppercase}
+.nav-item{
+  display:flex;align-items:center;gap:9px;padding:8px 14px;cursor:pointer;
+  font-size:12px;font-weight:500;color:var(--tx1);border-left:2px solid transparent;
+  transition:all .12s;user-select:none;
+}
+.nav-item:hover{background:rgba(0,220,255,0.04);color:var(--tx0)}
+.nav-item.active{color:var(--cyan);background:rgba(0,220,255,0.06);border-left-color:var(--cyan);text-shadow:0 0 6px rgba(0,220,255,0.35)}
+.nav-ic{font-size:13px;width:17px;text-align:center;flex-shrink:0}
+.nav-badge{margin-left:auto;font-size:9px;font-family:var(--mono);padding:2px 6px;border-radius:10px;
+  background:rgba(255,34,68,0.15);color:var(--red);border:1px solid rgba(255,34,68,0.2)}
+.sidebar-foot{padding:10px 14px;border-top:1px solid var(--line)}
+.sys-row{display:flex;align-items:center;gap:7px;margin-bottom:3px}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.dot.online{background:var(--green);box-shadow:var(--glow-green);animation:blink 2s infinite}
+.dot.offline{background:var(--tx2)}
+.dot.alert{background:var(--amber);animation:blink .8s infinite}
+.dot.critical{background:var(--red);box-shadow:var(--glow-red);animation:blink .4s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* MAIN */
+.main{flex:1;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 18px;height:46px;border-bottom:1px solid var(--line2);
+  background:rgba(6,11,16,0.97);flex-shrink:0;gap:10px;backdrop-filter:blur(8px);
+}
+.topbar-title{font-size:13px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--tx0)}
+.topbar-right{display:flex;align-items:center;gap:7px}
+.pill{padding:4px 10px;border-radius:20px;font-size:9.5px;font-weight:700;font-family:var(--mono);letter-spacing:.06em;cursor:default}
+.pill-clear{background:rgba(0,255,170,0.08);color:var(--green);border:1px solid rgba(0,255,170,0.2)}
+.pill-alert{background:rgba(255,170,0,0.1);color:var(--amber);border:1px solid rgba(255,170,0,0.25)}
+.pill-crit{background:rgba(255,34,68,0.12);color:var(--red);border:1px solid rgba(255,34,68,0.28);box-shadow:var(--glow-red)}
+.pill-off{background:rgba(45,79,96,0.2);color:var(--tx2);border:1px solid rgba(45,79,96,0.3)}
+.pill-cyan{background:rgba(0,220,255,0.07);color:var(--cyan);border:1px solid rgba(0,220,255,0.18)}
+.page-scroll{flex:1;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth}
+.page{display:none;padding:14px 18px 26px}
+.page.active{display:block}
+
+/* KPI */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:9px;margin-bottom:12px}
+.kpi{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:11px 13px;position:relative;overflow:hidden;transition:border-color .2s}
+.kpi:hover{border-color:var(--line2)}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:1px}
+.kpi.c-cyan::before{background:linear-gradient(90deg,transparent,var(--cyan),transparent)}
+.kpi.c-red::before{background:linear-gradient(90deg,transparent,var(--red),transparent)}
+.kpi.c-amber::before{background:linear-gradient(90deg,transparent,var(--amber),transparent)}
+.kpi.c-green::before{background:linear-gradient(90deg,transparent,var(--green),transparent)}
+.kpi.c-violet::before{background:linear-gradient(90deg,transparent,var(--violet),transparent)}
+.kpi.c-pink::before{background:linear-gradient(90deg,transparent,var(--pink),transparent)}
+.kpi-label{font-size:9px;color:var(--tx2);text-transform:uppercase;letter-spacing:.12em;margin-bottom:5px}
+.kpi-val{font-size:25px;font-weight:700;font-family:var(--mono);line-height:1}
+.kpi-val.cyan{color:var(--cyan)}
+.kpi-val.red{color:var(--red)}
+.kpi-val.amber{color:var(--amber)}
+.kpi-val.green{color:var(--green)}
+.kpi-val.violet{color:var(--violet)}
+.kpi-val.pink{color:var(--pink)}
+.kpi-sub{font-size:9px;color:var(--tx2);margin-top:3px}
+
+/* GRIDS */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.g3{display:grid;grid-template-columns:2fr 1fr;gap:10px;margin-bottom:10px}
+.g3r{display:grid;grid-template-columns:1fr 2fr;gap:10px;margin-bottom:10px}
+
+/* CARD */
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-bottom:0}
+.card-h{display:flex;align-items:center;justify-content:space-between;padding:9px 13px;border-bottom:1px solid var(--line)}
+.card-title{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.card-tag{font-size:8.5px;color:var(--tx2);text-transform:uppercase;letter-spacing:.1em}
+.card-b{padding:11px 13px}
+
+/* CAMERA */
+.cam-outer{position:relative;border-radius:var(--r);overflow:hidden;background:#000;border:1px solid var(--line2);margin-bottom:10px;aspect-ratio:16/9}
+.cam-outer img{width:100%;height:100%;object-fit:cover;display:block}
+.cam-offline{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;color:var(--tx2)}
+.cam-offline .cico{font-size:40px;opacity:.2}
+.cam-badge{position:absolute;top:9px;left:9px;background:rgba(255,34,68,0.9);color:#fff;font-size:8px;font-weight:700;font-family:var(--mono);padding:3px 7px;border-radius:3px;letter-spacing:.12em;display:flex;align-items:center;gap:5px}
+.cam-badge .rd{width:5px;height:5px;border-radius:50%;background:#fff;animation:blink .9s infinite}
+.cam-chips{position:absolute;bottom:9px;left:9px;right:9px;display:flex;gap:6px;flex-wrap:wrap}
+.chip{background:rgba(2,4,7,0.87);backdrop-filter:blur(8px);border:1px solid var(--line2);border-radius:4px;padding:4px 9px;font-family:var(--mono);font-size:10px;display:flex;flex-direction:column;gap:1px}
+.chip-lbl{font-size:7px;color:var(--tx2);text-transform:uppercase;letter-spacing:.12em}
+.chip-val{font-size:12px;font-weight:700;color:var(--tx0)}
+.alert-ring{position:absolute;inset:0;border:3px solid var(--amber);border-radius:var(--r);pointer-events:none;display:none;animation:ring-pulse 1s ease-in-out infinite}
+.crit-ring{position:absolute;inset:0;border:3px solid var(--red);border-radius:var(--r);pointer-events:none;display:none;animation:ring-pulse .5s ease-in-out infinite}
+@keyframes ring-pulse{0%,100%{opacity:0.5;transform:scale(1)}50%{opacity:1;transform:scale(1.003)}}
+
+/* CHART WRAPPERS */
+.cw{position:relative;width:100%}
+.cw-sm{height:130px}
+.cw-md{height:180px}
+.cw-lg{height:220px}
+.cw-xl{height:280px}
+
+/* BUTTONS */
+.btn{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:5px 12px;border-radius:5px;border:1px solid;
+  font-size:10px;font-weight:700;font-family:var(--mono);
+  cursor:pointer;letter-spacing:.04em;transition:opacity .15s;
+  background:transparent;
+}
+.btn:hover{opacity:0.75}
+.btn-cyan{color:var(--cyan);border-color:rgba(0,220,255,0.3);background:rgba(0,220,255,0.07)}
+.btn-red{color:var(--red);border-color:rgba(255,34,68,0.3);background:rgba(255,34,68,0.07)}
+.btn-amber{color:var(--amber);border-color:rgba(255,170,0,0.3);background:rgba(255,170,0,0.07)}
+.btn-green{color:var(--green);border-color:rgba(0,255,170,0.3);background:rgba(0,255,170,0.07)}
+
+/* GAUGE */
+.gauge-wrap{position:relative;width:180px;height:100px;margin:0 auto 4px}
+.gauge-wrap canvas{width:180px!important;height:100px!important}
+.gauge-center{position:absolute;bottom:0;left:0;right:0;text-align:center}
+.gauge-val{font-size:22px;font-weight:700;font-family:var(--mono);color:var(--green)}
+.gauge-label{font-size:9px;color:var(--tx2);letter-spacing:.1em;text-transform:uppercase;margin-top:1px}
+
+/* THREAT METER */
+.threat-wrap{margin-top:10px}
+.threat-bar{width:100%;height:7px;background:var(--bg4);border-radius:4px;overflow:hidden;margin:5px 0}
+.threat-fill{height:100%;border-radius:4px;transition:width .4s ease,background .4s ease}
+.threat-labels{display:flex;justify-content:space-between;font-size:8px;color:var(--tx2)}
+
+/* DETECTION LIST */
+.det-row{display:flex;align-items:center;gap:7px;padding:5px 12px;border-bottom:1px solid var(--line);font-size:11px;transition:background .1s}
+.det-row:hover{background:rgba(0,220,255,0.03)}
+.det-tag{font-family:var(--mono);font-size:8.5px;font-weight:700;padding:2px 7px;border-radius:3px;flex-shrink:0;background:rgba(0,220,255,0.1);color:var(--cyan);border:1px solid rgba(0,220,255,0.2)}
+.det-dist{font-family:var(--mono);font-size:12px;font-weight:700;min-width:54px}
+.det-conf{font-family:var(--mono);font-size:10px;color:var(--tx1);min-width:36px}
+.det-threat{font-family:var(--mono);font-size:10px;min-width:40px}
+.det-ts{font-size:9px;color:var(--tx2);margin-left:auto;font-family:var(--mono)}
+.det-flag{font-size:8px;font-weight:700;padding:2px 6px;border-radius:3px}
+.det-flag.CRITICAL{background:rgba(255,34,68,0.15);color:var(--red)}
+.det-flag.ALERT{background:rgba(255,170,0,0.12);color:var(--amber)}
+
+/* CONFUSION MATRIX */
+.cm-grid{display:grid;grid-template-columns:auto 1fr 1fr;grid-template-rows:auto 1fr 1fr;gap:3px;max-width:320px;margin:0 auto}
+.cm-cell{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:12px 8px;border-radius:5px;
+  font-family:var(--mono);font-size:11px;
+}
+.cm-header{background:transparent;font-size:9px;color:var(--tx2);text-transform:uppercase;letter-spacing:.1em}
+.cm-tp{background:rgba(0,255,170,0.1);border:1px solid rgba(0,255,170,0.2)}
+.cm-fn{background:rgba(255,170,0,0.08);border:1px solid rgba(255,170,0,0.18)}
+.cm-fp{background:rgba(255,34,68,0.08);border:1px solid rgba(255,34,68,0.18)}
+.cm-tn{background:rgba(0,220,255,0.06);border:1px solid rgba(0,220,255,0.15)}
+.cm-val{font-size:22px;font-weight:700;line-height:1}
+.cm-lbl{font-size:8.5px;color:var(--tx2);margin-top:3px;text-align:center}
+.cm-tp .cm-val{color:var(--green)}
+.cm-fn .cm-val{color:var(--amber)}
+.cm-fp .cm-val{color:var(--red)}
+.cm-tn .cm-val{color:var(--cyan)}
+
+/* METRIC BARS */
+.metric-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.metric-lbl{font-size:9.5px;color:var(--tx1);width:80px;flex-shrink:0}
+.metric-bar{flex:1;height:6px;background:var(--bg4);border-radius:3px;overflow:hidden}
+.metric-bar-fill{height:100%;border-radius:3px;transition:width .5s ease}
+.metric-pct{font-family:var(--mono);font-size:10px;width:40px;text-align:right;flex-shrink:0}
+
+/* ALERT LOG */
+.evt-row{display:flex;align-items:flex-start;gap:10px;padding:8px 13px;border-bottom:1px solid var(--line)}
+.evt-icon{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;margin-top:1px}
+.evt-icon.crit{background:rgba(255,34,68,0.15)}
+.evt-icon.warn{background:rgba(255,170,0,0.12)}
+.evt-icon.ok{background:rgba(0,255,170,0.1)}
+.evt-msg{font-size:11px;line-height:1.5;color:var(--tx0)}
+.evt-ts{font-size:9px;color:var(--tx2);font-family:var(--mono);margin-top:2px}
+
+/* SESSION LIST */
+.sess-row{display:flex;align-items:center;gap:10px;padding:9px 13px;border-bottom:1px solid var(--line);font-size:11px}
+.sess-id{font-family:var(--mono);font-size:9px;color:var(--tx2);min-width:110px}
+.s-badge{font-size:8.5px;font-family:var(--mono);padding:2px 7px;border-radius:10px}
+.s-badge.crit{background:rgba(255,34,68,0.15);color:var(--red)}
+.s-badge.alert{background:rgba(255,170,0,0.12);color:var(--amber)}
+.s-badge.ok{background:rgba(0,255,170,0.1);color:var(--green)}
+
+/* TABLE */
+.tbl{width:100%;border-collapse:collapse;font-size:11px}
+.tbl th{padding:7px 9px;text-align:left;font-size:8.5px;color:var(--tx2);letter-spacing:.1em;text-transform:uppercase;border-bottom:1px solid var(--line);font-weight:600}
+.tbl td{padding:6px 9px;border-bottom:1px solid var(--line);color:var(--tx0)}
+.tbl tr:hover td{background:rgba(0,220,255,0.03)}
+
+/* SETTINGS */
+.s-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.param-row{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--line)}
+.param-lbl{font-size:10.5px;color:var(--tx1);width:130px;flex-shrink:0}
+.param-inp{flex:1}
+.param-inp input[type=range]{width:100%;accent-color:var(--cyan)}
+.param-v{font-family:var(--mono);font-size:11px;color:var(--cyan);width:60px;text-align:right}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line)}
+.toggle-lbl{font-size:10.5px;color:var(--tx0);font-weight:600}
+.toggle-desc{font-size:9px;color:var(--tx2);margin-top:2px}
+.sw{position:relative;display:inline-block;width:36px;height:18px;flex-shrink:0}
+.sw input{opacity:0;width:0;height:0}
+.sw-track{position:absolute;cursor:pointer;inset:0;background:var(--bg5);border-radius:18px;border:1px solid var(--line2);transition:.3s}
+.sw-track:before{content:'';position:absolute;height:12px;width:12px;left:3px;top:2px;background:var(--tx2);border-radius:50%;transition:.3s}
+.sw input:checked+.sw-track{background:rgba(0,220,255,0.15);border-color:var(--cyan)}
+.sw input:checked+.sw-track:before{transform:translateX(18px);background:var(--cyan)}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.info-item{padding:8px;background:var(--bg3);border-radius:5px;border:1px solid var(--line)}
+.info-k{font-size:8.5px;color:var(--tx2);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px}
+.info-v{font-family:var(--mono);font-size:11px;color:var(--tx0)}
+.bar-track{display:inline-block;width:80px;height:6px;background:var(--bg4);border-radius:3px;vertical-align:middle;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px}
+
+/* MODAL */
+#report-modal{position:fixed;inset:0;z-index:1000;background:rgba(2,4,7,0.87);display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
+#report-modal.open{display:flex}
+.modal-box{background:var(--bg2);border:1px solid var(--line2);border-radius:var(--r);width:680px;max-width:95vw;max-height:80vh;overflow:hidden;display:flex;flex-direction:column}
+.modal-h{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--line)}
+.modal-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.modal-body{padding:16px;overflow-y:auto;flex:1}
+.modal-foot{padding:10px 16px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end}
+
+/* TOAST */
+#toast{position:fixed;bottom:20px;right:20px;z-index:9999;padding:8px 16px;border-radius:6px;font-size:11px;font-family:var(--mono);font-weight:700;background:var(--bg3);border:1px solid;display:none;box-shadow:0 4px 20px rgba(0,0,0,0.5)}
+</style>
+</head>
+<body>
+
+<div id="conn-banner">⚠ BACKEND OFFLINE — Run server_v2.py then open http://localhost:5000</div>
+<div id="crit-overlay"></div>
+<div id="report-modal">
+  <div class="modal-box">
+    <div class="modal-h"><span class="modal-title">📋 Session Report</span><button class="btn btn-red" onclick="closeReport()">✕ Close</button></div>
+    <div class="modal-body" id="report-content">Loading…</div>
+    <div class="modal-foot">
+      <button class="btn btn-cyan" onclick="exportJSON()">⬇ Export JSON</button>
+      <button class="btn btn-green" onclick="printReport()">🖨 Print / PDF</button>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<div class="shell">
+
+<!-- ════ SIDEBAR ════ -->
+<aside class="sidebar">
+  <div class="logo-area">
+    <div class="logo-row">
+      <div class="logo-hex">👁</div>
+      <div>
+        <div class="logo-name">EDGE EYE</div>
+        <div class="logo-sub">v5.0 · AI Blind Spot</div>
+      </div>
+    </div>
+  </div>
+  <nav>
+    <div class="nav-sec">Monitor</div>
+    <div class="nav-item active" onclick="navTo(this,'live')"><span class="nav-ic">📷</span>Live Command</div>
+    <div class="nav-item" onclick="navTo(this,'heatmap')"><span class="nav-ic">🌡</span>Threat Heatmap</div>
+
+    <div class="nav-sec">Analytics</div>
+    <div class="nav-item" onclick="navTo(this,'analytics')"><span class="nav-ic">📊</span>Detection Stats</div>
+    <div class="nav-item" onclick="navTo(this,'accuracy')"><span class="nav-ic">🔬</span>Accuracy & Model</div>
+
+    <div class="nav-sec">Data</div>
+    <div class="nav-item" onclick="navTo(this,'alerts')"><span class="nav-ic">🚨</span>Alert Log<span class="nav-badge" id="badge-alerts">0</span></div>
+    <div class="nav-item" onclick="navTo(this,'sessions')"><span class="nav-ic">🗃</span>Sessions</div>
+    <div class="nav-item" onclick="navTo(this,'database')"><span class="nav-ic">🗄</span>Database</div>
+
+    <div class="nav-sec">System</div>
+    <div class="nav-item" onclick="navTo(this,'settings')"><span class="nav-ic">⚙️</span>Settings</div>
+  </nav>
+  <div class="sidebar-foot">
+    <div class="sys-row">
+      <div class="dot offline" id="sys-dot"></div>
+      <span id="sys-label" style="font-size:11px;font-weight:600">Connecting…</span>
+    </div>
+    <div style="font-family:var(--mono);font-size:10px;color:var(--tx2);margin-left:14px" id="sys-fps">-- FPS</div>
+    <div style="font-family:var(--mono);font-size:10px;color:var(--tx2);margin-left:14px" id="sys-time">--:--:--</div>
+  </div>
+</aside>
+
+<!-- ════ MAIN ════ -->
+<div class="main">
+  <div class="topbar">
+    <span class="topbar-title" id="topbar-title">Live Command</span>
+    <div class="topbar-right">
+      <span id="status-pill" class="pill pill-off">● OFFLINE</span>
+      <span id="model-pill" class="pill pill-cyan">YOLOv8n</span>
+      <span id="top-clock" style="font-family:var(--mono);font-size:11px;color:var(--tx2)">--:--:--</span>
+      <button class="btn btn-green" style="font-size:9px;padding:3px 9px" onclick="openReport()">📋 Report</button>
+    </div>
+  </div>
+
+  <div class="page-scroll">
+
+  <!-- ════ LIVE COMMAND ════ -->
+  <div class="page active" id="page-live">
+    <div class="kpi-row">
+      <div class="kpi c-cyan"><div class="kpi-label">Closest Distance</div><div class="kpi-val cyan" id="kpi-closest">---</div><div class="kpi-sub">current frame</div></div>
+      <div class="kpi c-red"><div class="kpi-label">Critical Events</div><div class="kpi-val red" id="kpi-critical">0</div><div class="kpi-sub">≤100cm</div></div>
+      <div class="kpi c-amber"><div class="kpi-label">Alert Events</div><div class="kpi-val amber" id="kpi-alerts">0</div><div class="kpi-sub">≤200cm</div></div>
+      <div class="kpi c-green"><div class="kpi-label">Total Detections</div><div class="kpi-val green" id="kpi-total">0</div><div class="kpi-sub">this session</div></div>
+      <div class="kpi c-violet"><div class="kpi-label">Live FPS</div><div class="kpi-val violet" id="kpi-fps">--</div><div class="kpi-sub">inference rate</div></div>
+      <div class="kpi c-pink"><div class="kpi-label">Peak Threat</div><div class="kpi-val pink" id="kpi-threat">0</div><div class="kpi-sub">score / 100</div></div>
+    </div>
+    <div class="g3">
+      <div>
+        <div class="cam-outer">
+          <img id="cam-img" src="/video_feed" alt="Camera"
+               onerror="this.style.display='none';document.getElementById('cam-offline').style.display='flex'"
+               onload="document.getElementById('cam-offline').style.display='none';this.style.display='block'"
+               style="display:block">
+          <div class="cam-offline" id="cam-offline" style="display:none">
+            <div class="cico">📷</div>
+            <div style="font-size:12px">Camera offline</div>
+            <div style="font-size:10px;color:var(--tx2)">Run server_v2.py at :5000</div>
+          </div>
+          <div class="cam-badge"><div class="rd"></div>LIVE</div>
+          <div class="cam-chips">
+            <div class="chip"><div class="chip-lbl">Status</div><div class="chip-val" id="lc-status" style="color:var(--green)">CLEAR</div></div>
+            <div class="chip"><div class="chip-lbl">Closest</div><div class="chip-val" id="lc-dist">---</div></div>
+            <div class="chip"><div class="chip-lbl">FPS</div><div class="chip-val" id="lc-fps">--</div></div>
+            <div class="chip"><div class="chip-lbl">Threat</div><div class="chip-val" id="lc-threat">0</div></div>
+          </div>
+          <div class="alert-ring" id="alert-ring"></div>
+          <div class="crit-ring" id="crit-ring"></div>
+        </div>
+        <!-- Live distance chart -->
+        <div class="card">
+          <div class="card-h"><span class="card-title">Distance Timeline</span><span class="card-tag" id="det-count-tag">0 dets</span></div>
+          <div class="card-b"><div class="cw cw-md"><canvas id="live-dist-chart"></canvas></div></div>
+        </div>
+      </div>
+      <!-- RIGHT: Gauge + threat + detection list -->
+      <div>
+        <div class="card" style="margin-bottom:10px">
+          <div class="card-h"><span class="card-title">Distance Gauge</span></div>
+          <div class="card-b">
+            <div class="gauge-wrap"><canvas id="gauge-chart" width="180" height="100"></canvas>
+              <div class="gauge-center"><div class="gauge-val" id="gauge-val">---</div><div class="gauge-label" id="gauge-label">NO DETECTION</div></div>
+            </div>
+            <div class="threat-wrap">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                <span style="font-size:9px;color:var(--tx2);text-transform:uppercase;letter-spacing:.1em">Threat Score</span>
+                <span id="threat-val" style="font-family:var(--mono);font-size:14px;font-weight:700;color:var(--green)">0</span>
+              </div>
+              <div class="threat-bar"><div class="threat-fill" id="threat-fill" style="width:0%;background:var(--green)"></div></div>
+              <div class="threat-labels"><span>Low</span><span id="threat-label">LOW THREAT</span><span>High</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h"><span class="card-title">Recent Detections</span></div>
+          <div id="det-list" style="max-height:280px;overflow-y:auto"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ HEATMAP ════ -->
+  <div class="page" id="page-heatmap">
+    <div class="kpi-row" style="grid-template-columns:repeat(4,1fr)">
+      <div class="kpi c-red"><div class="kpi-label">Peak Density</div><div class="kpi-val red" id="hm-hot">0</div><div class="kpi-sub">max cell hits</div></div>
+      <div class="kpi c-amber"><div class="kpi-label">Active Zones</div><div class="kpi-val amber" id="hm-zones">0</div></div>
+      <div class="kpi c-cyan"><div class="kpi-label">Coverage</div><div class="kpi-val cyan" id="hm-cov">0%</div></div>
+      <div class="kpi c-green"><div class="kpi-label">Last Updated</div><div class="kpi-val green" style="font-size:11px" id="hm-ts">--</div></div>
+    </div>
+    <div class="card">
+      <div class="card-h">
+        <span class="card-title">Threat Heatmap — Detection Density</span>
+        <button class="btn btn-red" style="font-size:9px" onclick="resetHeatmap()">🗑 Reset</button>
+      </div>
+      <div class="card-b"><canvas id="heatmap-canvas" style="width:100%;display:block;border-radius:5px"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ════ ANALYTICS ════ -->
+  <div class="page" id="page-analytics">
+    <div class="kpi-row" style="grid-template-columns:repeat(5,1fr)">
+      <div class="kpi c-green"><div class="kpi-label">Total Detections</div><div class="kpi-val green" id="an-total">0</div></div>
+      <div class="kpi c-amber"><div class="kpi-label">Alerts Raised</div><div class="kpi-val amber" id="an-alerts">0</div></div>
+      <div class="kpi c-cyan"><div class="kpi-label">Avg Distance</div><div class="kpi-val cyan" id="an-avg-dist">--</div></div>
+      <div class="kpi c-red"><div class="kpi-label">Min Distance</div><div class="kpi-val red" id="an-min-dist">--</div></div>
+      <div class="kpi c-pink"><div class="kpi-label">Avg Threat</div><div class="kpi-val pink" id="an-avg-threat">--</div></div>
+    </div>
+    <div class="g2">
+      <div class="card"><div class="card-h"><span class="card-title">Distance Over Time</span></div><div class="card-b"><div class="cw cw-lg"><canvas id="an-dist-time"></canvas></div></div></div>
+      <div class="card"><div class="card-h"><span class="card-title">Distance Histogram</span></div><div class="card-b"><div class="cw cw-lg"><canvas id="an-dist-hist"></canvas></div></div></div>
+    </div>
+    <div class="g2">
+      <div class="card"><div class="card-h"><span class="card-title">Detections Per Minute</span></div><div class="card-b"><div class="cw cw-md"><canvas id="an-per-min"></canvas></div></div></div>
+      <div class="card"><div class="card-h"><span class="card-title">Threat Score Distribution</span></div><div class="card-b"><div class="cw cw-md"><canvas id="an-threat-hist"></canvas></div></div></div>
+    </div>
+  </div>
+
+  <!-- ════ ACCURACY & MODEL ════ -->
+  <div class="page" id="page-accuracy">
+    <div class="kpi-row">
+      <div class="kpi c-green"><div class="kpi-label">Avg Confidence</div><div class="kpi-val green" id="ac-avg">--%</div><div class="kpi-sub">all detections</div></div>
+      <div class="kpi c-cyan"><div class="kpi-label">Peak Confidence</div><div class="kpi-val cyan" id="ac-peak">--%</div><div class="kpi-sub">session max</div></div>
+      <div class="kpi c-amber"><div class="kpi-label">Lowest Confidence</div><div class="kpi-val amber" id="ac-low">--%</div><div class="kpi-sub">above threshold</div></div>
+      <div class="kpi c-violet"><div class="kpi-label">Threshold</div><div class="kpi-val violet" id="ac-thresh">45%</div></div>
+      <div class="kpi c-pink"><div class="kpi-label">Peak FPS</div><div class="kpi-val pink" id="ac-peak-fps">--</div></div>
+    </div>
+
+    <!-- CONFUSION MATRIX + METRICS -->
+    <div class="g2" style="margin-bottom:10px">
+      <div class="card">
+        <div class="card-h"><span class="card-title">Confusion Matrix</span><span class="card-tag" id="cm-update-tag">live</span></div>
+        <div class="card-b">
+          <div class="cm-grid">
+            <!-- row 0: corner, Predicted ALERT, Predicted CLEAR -->
+            <div class="cm-cell cm-header"></div>
+            <div class="cm-cell cm-header">Pred ALERT</div>
+            <div class="cm-cell cm-header">Pred CLEAR</div>
+            <!-- row 1: Actual ALERT -->
+            <div class="cm-cell cm-header" style="writing-mode:vertical-lr;transform:rotate(180deg);height:90px">Actual ALERT</div>
+            <div class="cm-cell cm-tp"><div class="cm-val" id="cm-tp">0</div><div class="cm-lbl">True Positive</div></div>
+            <div class="cm-cell cm-fn"><div class="cm-val" id="cm-fn">0</div><div class="cm-lbl">False Negative</div></div>
+            <!-- row 2: Actual CLEAR -->
+            <div class="cm-cell cm-header" style="writing-mode:vertical-lr;transform:rotate(180deg);height:90px">Actual CLEAR</div>
+            <div class="cm-cell cm-fp"><div class="cm-val" id="cm-fp">0</div><div class="cm-lbl">False Positive</div></div>
+            <div class="cm-cell cm-tn"><div class="cm-val" id="cm-tn">0</div><div class="cm-lbl">True Negative</div></div>
+          </div>
+          <div style="margin-top:12px;font-size:9.5px;color:var(--tx2);line-height:1.7;padding:8px;background:var(--bg3);border-radius:5px">
+            <strong style="color:var(--cyan)">TP</strong> = alert correctly triggered &nbsp;
+            <strong style="color:var(--amber)">FN</strong> = missed alert &nbsp;
+            <strong style="color:var(--red)">FP</strong> = false alarm &nbsp;
+            <strong style="color:var(--cyan)">TN</strong> = correctly clear
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h"><span class="card-title">Performance Metrics</span></div>
+        <div class="card-b">
+          <div class="metric-row"><span class="metric-lbl">Precision</span><div class="metric-bar"><div class="metric-bar-fill" id="mb-precision" style="background:var(--green);width:0%"></div></div><span class="metric-pct" id="mv-precision" style="color:var(--green)">0%</span></div>
+          <div class="metric-row"><span class="metric-lbl">Recall</span><div class="metric-bar"><div class="metric-bar-fill" id="mb-recall" style="background:var(--cyan);width:0%"></div></div><span class="metric-pct" id="mv-recall" style="color:var(--cyan)">0%</span></div>
+          <div class="metric-row"><span class="metric-lbl">F1 Score</span><div class="metric-bar"><div class="metric-bar-fill" id="mb-f1" style="background:var(--violet);width:0%"></div></div><span class="metric-pct" id="mv-f1" style="color:var(--violet)">0%</span></div>
+          <div class="metric-row"><span class="metric-lbl">Accuracy</span><div class="metric-bar"><div class="metric-bar-fill" id="mb-accuracy" style="background:var(--amber);width:0%"></div></div><span class="metric-pct" id="mv-accuracy" style="color:var(--amber)">0%</span></div>
+          <div class="metric-row"><span class="metric-lbl">Specificity</span><div class="metric-bar"><div class="metric-bar-fill" id="mb-specificity" style="background:var(--pink);width:0%"></div></div><span class="metric-pct" id="mv-specificity" style="color:var(--pink)">0%</span></div>
+          <div style="margin-top:12px;font-size:9px;color:var(--tx2)">
+            Metrics update automatically from detection log every poll cycle.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="g2">
+      <div class="card"><div class="card-h"><span class="card-title">Confidence Over Time</span></div><div class="card-b"><div class="cw cw-lg"><canvas id="ac-conf-time"></canvas></div></div></div>
+      <div class="card"><div class="card-h"><span class="card-title">Confidence Histogram</span></div><div class="card-b"><div class="cw cw-lg"><canvas id="ac-conf-hist"></canvas></div></div></div>
+    </div>
+
+    <div class="card" style="margin-top:10px">
+      <div class="card-h"><span class="card-title">Distance Accuracy — Calibration Reference</span></div>
+      <div class="card-b">
+        <div style="margin-bottom:10px;padding:10px;background:var(--bg3);border-radius:5px;font-size:11px;color:var(--tx1);line-height:1.8;border-left:3px solid var(--cyan)">
+          <strong style="color:var(--cyan)">Formula:</strong>
+          <code style="background:var(--bg0);padding:2px 6px;border-radius:3px;font-family:var(--mono)">distance = (person_height_cm × focal_length) / box_height_px</code>
+          — Use Settings → Calibrate at 150 cm to improve accuracy. Single "HUMAN" class used for all detections.
+        </div>
+        <table class="tbl">
+          <thead><tr><th>Range</th><th>Method</th><th>Accuracy</th><th>Typical Error</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>50–100cm</td><td style="font-family:var(--mono);font-size:10px">Monocular</td><td><div class="bar-track"><div class="bar-fill" style="width:88%;background:var(--green)"></div></div><span style="font-family:var(--mono);font-size:10px;color:var(--green);margin-left:6px">~88%</span></td><td style="font-family:var(--mono);color:var(--amber)">±10–15cm</td><td style="color:var(--tx2)">High accuracy</td></tr>
+            <tr><td>100–200cm</td><td style="font-family:var(--mono);font-size:10px">Monocular</td><td><div class="bar-track"><div class="bar-fill" style="width:82%;background:var(--green)"></div></div><span style="font-family:var(--mono);font-size:10px;color:var(--green);margin-left:6px">~82%</span></td><td style="font-family:var(--mono);color:var(--amber)">±15–25cm</td><td style="color:var(--tx2)">Alert zone</td></tr>
+            <tr><td>200–350cm</td><td style="font-family:var(--mono);font-size:10px">Monocular</td><td><div class="bar-track"><div class="bar-fill" style="width:70%;background:var(--amber)"></div></div><span style="font-family:var(--mono);font-size:10px;color:var(--amber);margin-left:6px">~70%</span></td><td style="font-family:var(--mono);color:var(--amber)">±25–40cm</td><td style="color:var(--tx2)">Safe zone</td></tr>
+            <tr><td>Post-calib</td><td style="font-family:var(--mono);font-size:10px">Adaptive FL</td><td><div class="bar-track"><div class="bar-fill" style="width:93%;background:var(--cyan)"></div></div><span style="font-family:var(--mono);font-size:10px;color:var(--cyan);margin-left:6px">~93%</span></td><td style="font-family:var(--mono);color:var(--green)">±8–12cm</td><td style="color:var(--tx2)">After calibration</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:10px">
+      <div class="card-h"><span class="card-title">Model Benchmark Comparison</span></div>
+      <div class="card-b"><div class="cw cw-md"><canvas id="ac-model-cmp"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- ════ ALERT LOG ════ -->
+  <div class="page" id="page-alerts">
+    <div class="kpi-row" style="grid-template-columns:repeat(3,1fr)">
+      <div class="kpi c-red"><div class="kpi-label">Critical (&lt;100cm)</div><div class="kpi-val red" id="al-crit">0</div></div>
+      <div class="kpi c-amber"><div class="kpi-label">Alerts (100–200cm)</div><div class="kpi-val amber" id="al-warn">0</div></div>
+      <div class="kpi c-green"><div class="kpi-label">Safe Detections</div><div class="kpi-val green" id="al-safe">0</div></div>
+    </div>
+    <div class="card">
+      <div class="card-h">
+        <span class="card-title">Event Timeline</span>
+        <div style="display:flex;gap:7px;align-items:center">
+          <span class="card-tag" id="al-date">--</span>
+          <button class="btn btn-cyan" style="font-size:9px;padding:3px 9px" onclick="exportCSV()">⬇ CSV</button>
+        </div>
+      </div>
+      <div id="alert-log-list" style="max-height:560px;overflow-y:auto"></div>
+    </div>
+  </div>
+
+  <!-- ════ SESSIONS ════ -->
+  <div class="page" id="page-sessions">
+    <div class="card">
+      <div class="card-h"><span class="card-title">All Sessions</span><span class="card-tag" id="sess-count">--</span></div>
+      <div id="sess-list" style="max-height:620px;overflow-y:auto"></div>
+    </div>
+  </div>
+
+  <!-- ════ DATABASE ════ -->
+  <div class="page" id="page-database">
+    <div class="kpi-row" style="grid-template-columns:repeat(4,1fr)">
+      <div class="kpi c-cyan"><div class="kpi-label">Total Rows</div><div class="kpi-val cyan" id="db-rows">--</div><div class="kpi-sub">all sessions</div></div>
+      <div class="kpi c-red"><div class="kpi-label">Total Critical</div><div class="kpi-val red" id="db-crit">--</div></div>
+      <div class="kpi c-amber"><div class="kpi-label">Sessions</div><div class="kpi-val amber" id="db-sess">--</div></div>
+      <div class="kpi c-green"><div class="kpi-label">DB File</div><div class="kpi-val green" style="font-size:12px">edge_eye.db</div><div class="kpi-sub">SQLite WAL</div></div>
+    </div>
+    <div class="g2">
+      <div class="card"><div class="card-h"><span class="card-title">Detections Per Session</span></div><div class="card-b"><div class="cw cw-md"><canvas id="db-sess-chart"></canvas></div></div></div>
+      <div class="card"><div class="card-h"><span class="card-title">Alert Level Distribution</span></div><div class="card-b"><div class="cw cw-md"><canvas id="db-level-pie"></canvas></div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-h">
+        <span class="card-title">Raw Detections (Current Session)</span>
+        <div style="display:flex;gap:7px">
+          <button class="btn btn-cyan" onclick="exportCSV()">⬇ CSV</button>
+          <button class="btn btn-amber" onclick="window.open('/api/db/export')">⬇ .db File</button>
+          <button class="btn btn-green" onclick="window.open('/api/report/json')">⬇ JSON Report</button>
+        </div>
+      </div>
+      <div style="max-height:380px;overflow-y:auto">
+        <table class="tbl"><thead><tr><th>#</th><th>Timestamp</th><th>Type</th><th>Distance</th><th>Confidence</th><th>Threat</th><th>Level</th></tr></thead>
+        <tbody id="db-raw-body"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ SETTINGS ════ -->
+  <div class="page" id="page-settings">
+    <div class="s-grid">
+      <div>
+        <div class="card" style="margin-bottom:10px">
+          <div class="card-h"><span class="card-title">Detection Parameters</span></div>
+          <div class="card-b">
+            <div class="param-row"><div class="param-lbl">Alert Distance</div><div class="param-inp"><input type="range" id="cfg-alert" min="50" max="400" value="200" oninput="document.getElementById('cfg-alert-v').textContent=this.value+'cm'"></div><div class="param-v" id="cfg-alert-v">200cm</div></div>
+            <div class="param-row"><div class="param-lbl">Critical Distance</div><div class="param-inp"><input type="range" id="cfg-crit" min="20" max="200" value="100" oninput="document.getElementById('cfg-crit-v').textContent=this.value+'cm'"></div><div class="param-v" id="cfg-crit-v">100cm</div></div>
+            <div class="param-row"><div class="param-lbl">Confidence Threshold</div><div class="param-inp"><input type="range" id="cfg-conf" min="10" max="90" value="45" oninput="document.getElementById('cfg-conf-v').textContent=this.value+'%'"></div><div class="param-v" id="cfg-conf-v">45%</div></div>
+            <div class="param-row"><div class="param-lbl">Focal Length</div><div class="param-inp"><input type="range" id="cfg-fl" min="400" max="1200" value="700" oninput="document.getElementById('cfg-fl-v').textContent=this.value+'px'"></div><div class="param-v" id="cfg-fl-v">700px</div></div>
+            <div class="param-row"><div class="param-lbl">Camera Index</div><div class="param-inp"><input type="range" id="cfg-cam" min="0" max="3" value="0" step="1" oninput="document.getElementById('cfg-cam-v').textContent='CAM '+this.value"></div><div class="param-v" id="cfg-cam-v">CAM 0</div></div>
+            <div style="margin-top:11px;display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-cyan" onclick="saveConfig()">✓ Apply</button>
+              <button class="btn btn-amber" onclick="calibrate()">🔧 Calibrate 150cm</button>
+              <button class="btn btn-green" onclick="openReport()">📋 Report</button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h"><span class="card-title">Alerts & Hardware</span></div>
+          <div class="card-b">
+            <div class="toggle-row"><div><div class="toggle-lbl">Mirror Camera</div><div class="toggle-desc">Flip horizontally</div></div><label class="sw"><input type="checkbox" checked id="tog-mirror" onchange="applyToggle('mirror_camera',this.checked)"><span class="sw-track"></span></label></div>
+            <div class="toggle-row"><div><div class="toggle-lbl">Show Danger Zone</div><div class="toggle-desc">Overlay on camera</div></div><label class="sw"><input type="checkbox" checked id="tog-dz" onchange="applyToggle('show_danger_zone',this.checked)"><span class="sw-track"></span></label></div>
+            <div class="toggle-row"><div><div class="toggle-lbl">Audio Alert</div><div class="toggle-desc">Play alert_final.wav</div></div><label class="sw"><input type="checkbox" checked><span class="sw-track"></span></label></div>
+            <div class="toggle-row"><div><div class="toggle-lbl">Arduino LED/Buzzer</div><div class="toggle-desc">Serial COM5 signal</div></div><label class="sw"><input type="checkbox" checked><span class="sw-track"></span></label></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:10px">
+          <div class="card-h"><span class="card-title">Live System Info</span></div>
+          <div class="card-b">
+            <div class="info-grid">
+              <div class="info-item"><div class="info-k">Model</div><div class="info-v" id="si-model">--</div></div>
+              <div class="info-item"><div class="info-k">Arduino</div><div class="info-v" id="si-arduino">--</div></div>
+              <div class="info-item"><div class="info-k">Camera Res</div><div class="info-v" id="si-cam">--</div></div>
+              <div class="info-item"><div class="info-k">Session ID</div><div class="info-v" id="si-sess" style="font-size:9px">--</div></div>
+              <div class="info-item"><div class="info-k">Focal Length</div><div class="info-v" id="si-fl">--</div></div>
+              <div class="info-item"><div class="info-k">Alert Dist</div><div class="info-v" id="si-ad">200cm</div></div>
+              <div class="info-item"><div class="info-k">Accuracy</div><div class="info-v" id="si-accuracy" style="color:var(--green)">--</div></div>
+              <div class="info-item"><div class="info-k">Version</div><div class="info-v">v5.0</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h"><span class="card-title">API Endpoints</span></div>
+          <div class="card-b" style="font-size:10.5px;color:var(--tx1);line-height:2.3;font-family:var(--mono)">
+            <div><span style="color:var(--cyan)">/video_feed</span> <span style="color:var(--tx2)">— MJPEG stream</span></div>
+            <div><span style="color:var(--cyan)">/api/status</span> <span style="color:var(--tx2)">— live JSON + CM</span></div>
+            <div><span style="color:var(--cyan)">/api/detections</span> <span style="color:var(--tx2)">— detection DB</span></div>
+            <div><span style="color:var(--cyan)">/api/accuracy</span> <span style="color:var(--tx2)">— CM + metrics</span></div>
+            <div><span style="color:var(--cyan)">/api/heatmap</span> <span style="color:var(--tx2)">— grid data</span></div>
+            <div><span style="color:var(--cyan)">/api/stats/summary</span> <span style="color:var(--tx2)">— session stats</span></div>
+            <div><span style="color:var(--cyan)">/api/report/json</span> <span style="color:var(--tx2)">— full report</span></div>
+            <div><span style="color:var(--amber)">/api/config POST</span> <span style="color:var(--tx2)">— update config</span></div>
+            <div><span style="color:var(--cyan)">/api/stream</span> <span style="color:var(--tx2)">— SSE live push</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- /page-scroll -->
+</div><!-- /main -->
+</div><!-- /shell -->
+
+<script>
+// ══════════════════════════════════════════════════════
+//  CHART.JS DEFAULTS
+// ══════════════════════════════════════════════════════
+Chart.defaults.color = '#2d4f60';
+Chart.defaults.font.family = "'Share Tech Mono',monospace";
+Chart.defaults.font.size = 10;
+Chart.defaults.plugins.tooltip.backgroundColor = '#0a1018';
+Chart.defaults.plugins.tooltip.borderColor = 'rgba(0,220,255,0.15)';
+Chart.defaults.plugins.tooltip.borderWidth = 1;
+Chart.defaults.plugins.tooltip.titleColor = '#c8dde8';
+Chart.defaults.plugins.tooltip.bodyColor = '#5d8a9e';
+
+const C = {cyan:'#00dcff',red:'#ff2244',amber:'#ffaa00',green:'#00ffaa',violet:'#9b6dff',pink:'#ff4daa'};
+const charts = {};
+function dc(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+
+// ══════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════
+let liveStatus = null, detections = [], sessions = [], accuracyData = null;
+let offlineCount = 0, lastDetLen = -1, lastCMStr = '';
+
+// ══════════════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════════════
+const PT = {live:'Live Command',heatmap:'Threat Heatmap',analytics:'Detection Stats',
+            accuracy:'Accuracy & Model',alerts:'Alert Log',sessions:'Sessions',
+            database:'Database',settings:'Settings'};
+function navTo(el, name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  el.classList.add('active');
+  document.getElementById('topbar-title').textContent = PT[name]||name;
+  if(name==='analytics') buildAnalytics();
+  if(name==='accuracy')  buildAccuracy();
+  if(name==='sessions')  buildSessions();
+  if(name==='database')  buildDatabase();
+  if(name==='heatmap')   fetchHeatmap();
+}
+
+// ══════════════════════════════════════════════════════
+//  CLOCK
+// ══════════════════════════════════════════════════════
+function tick(){
+  const t = new Date().toLocaleTimeString('en-GB');
+  document.getElementById('sys-time').textContent = t;
+  document.getElementById('top-clock').textContent = t;
+}
+setInterval(tick, 1000); tick();
+
+// ══════════════════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════════════════
+function toast(msg, type='info'){
+  const el = document.getElementById('toast');
+  el.style.borderColor = type==='error'?C.red:type==='ok'?C.green:C.cyan;
+  el.style.color = type==='error'?C.red:type==='ok'?C.green:C.cyan;
+  el.textContent = msg; el.style.display = 'block';
+  setTimeout(()=>el.style.display='none', 2800);
+}
+
+// ══════════════════════════════════════════════════════
+//  GAUGE
+// ══════════════════════════════════════════════════════
+let gaugeChart = null;
+function initGauge(){
+  const ctx = document.getElementById('gauge-chart').getContext('2d');
+  gaugeChart = new Chart(ctx,{type:'doughnut',data:{datasets:[{data:[0,350],
+    backgroundColor:['rgba(0,255,170,0.85)','rgba(255,255,255,0.03)'],
+    borderWidth:0,circumference:180,rotation:270}]},
+    options:{responsive:false,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{enabled:false}}}});
+}
+function updateGauge(dist){
+  if(!gaugeChart)return;
+  const safe=dist>9000,crit=dist<=100,alert=dist<=200;
+  const cap=Math.min(dist,350);
+  const col=crit?C.red:alert?C.amber:C.green;
+  gaugeChart.data.datasets[0].data=[cap,Math.max(0,350-cap)];
+  gaugeChart.data.datasets[0].backgroundColor=[col,'rgba(255,255,255,0.03)'];
+  gaugeChart.update('none');
+  document.getElementById('gauge-val').style.color=col;
+  document.getElementById('gauge-val').textContent=safe?'---':dist+'cm';
+  document.getElementById('gauge-label').textContent=safe?'NO DETECTION':crit?'CRITICAL':alert?'ALERT ZONE':'SAFE ZONE';
+}
+
+// ══════════════════════════════════════════════════════
+//  THREAT METER
+// ══════════════════════════════════════════════════════
+function updateThreat(score){
+  const col=score>=70?C.red:score>=40?C.amber:C.green;
+  document.getElementById('threat-val').textContent=Math.round(score);
+  document.getElementById('threat-val').style.color=col;
+  document.getElementById('threat-fill').style.width=score+'%';
+  document.getElementById('threat-fill').style.background=col;
+  document.getElementById('threat-label').textContent=score>=70?'HIGH THREAT':score>=40?'MODERATE':'LOW THREAT';
+  document.getElementById('kpi-threat').textContent=Math.round(score);
+  document.getElementById('lc-threat').textContent=Math.round(score);
+  document.getElementById('lc-threat').style.color=col;
+}
+
+// ══════════════════════════════════════════════════════
+//  LIVE DISTANCE CHART
+// ══════════════════════════════════════════════════════
+let liveDistChart=null;
+function buildLiveDistChart(){
+  const rows=detections.slice(-80);
+  const labels=rows.map((_,i)=>i+1);
+  const data=rows.map(r=>r.distance_cm);
+  const pts=rows.map(r=>r.alert_level==='CRITICAL'?C.red:r.alert_level==='ALERT'?C.amber:C.green);
+  if(liveDistChart){
+    liveDistChart.data.labels=labels;
+    liveDistChart.data.datasets[0].data=data;
+    liveDistChart.data.datasets[0].pointBackgroundColor=pts;
+    liveDistChart.update('none');return;
+  }
+  const ctx=document.getElementById('live-dist-chart').getContext('2d');
+  liveDistChart=new Chart(ctx,{type:'line',data:{labels,datasets:[
+    {data,pointBackgroundColor:pts,borderColor:C.cyan,backgroundColor:'rgba(0,220,255,0.04)',
+     borderWidth:1.5,pointRadius:3,fill:true,tension:0.3},
+    {data:labels.map(()=>200),borderColor:C.amber,borderDash:[4,4],borderWidth:1,pointRadius:0,fill:false},
+    {data:labels.map(()=>100),borderColor:C.red,borderDash:[3,3],borderWidth:1,pointRadius:0,fill:false}
+  ]},options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{x:{grid:{color:'rgba(0,220,255,0.03)'},ticks:{maxTicksLimit:8}},
+            y:{grid:{color:'rgba(0,220,255,0.03)'},min:0,max:400,ticks:{callback:v=>v+'cm'}}}}});
+}
+
+// ══════════════════════════════════════════════════════
+//  DETECTION LIST
+// ══════════════════════════════════════════════════════
+function buildDetList(){
+  const rows=detections.slice(-30).reverse();
+  document.getElementById('det-count-tag').textContent=detections.length+' total';
+  const el=document.getElementById('det-list'); el.innerHTML='';
+  rows.forEach(r=>{
+    const col=r.alert_level==='CRITICAL'?C.red:r.alert_level==='ALERT'?C.amber:C.green;
+    const div=document.createElement('div'); div.className='det-row';
+    const threat=r.threat_score||0;
+    const tc=threat>=70?C.red:threat>=40?C.amber:C.green;
+    div.innerHTML=`<div class="det-tag">HUMAN</div>
+      <div class="det-dist" style="color:${col}">${r.distance_cm}cm</div>
+      <div class="det-conf">${(r.confidence*100).toFixed(1)}%</div>
+      <div class="det-threat" style="color:${tc}">T:${Math.round(threat)}</div>
+      <div class="det-ts">${(r.timestamp||'').slice(11,19)}</div>
+      ${r.alert_level!=='CLEAR'?`<div class="det-flag ${r.alert_level}">${r.alert_level}</div>`:''}`;
+    el.appendChild(div);
+  });
+}
+
+// ══════════════════════════════════════════════════════
+//  CONFUSION MATRIX  (live update from /api/status)
+// ══════════════════════════════════════════════════════
+function updateConfusionMatrix(s){
+  if(!s)return;
+  const tp=s.cm_tp||0,fp=s.cm_fp||0,fn=s.cm_fn||0,tn=s.cm_tn||0;
+  const key=`${tp},${fp},${fn},${tn}`;
+  if(key===lastCMStr)return;
+  lastCMStr=key;
+  document.getElementById('cm-tp').textContent=tp;
+  document.getElementById('cm-fp').textContent=fp;
+  document.getElementById('cm-fn').textContent=fn;
+  document.getElementById('cm-tn').textContent=tn;
+  document.getElementById('cm-update-tag').textContent='updated '+new Date().toLocaleTimeString();
+
+  // Metric bars
+  function setBar(id, val, col){
+    document.getElementById('mb-'+id).style.width=val+'%';
+    document.getElementById('mb-'+id).style.background=col;
+    document.getElementById('mv-'+id).textContent=val.toFixed(1)+'%';
+  }
+  setBar('precision',  s.precision  ||0, C.green);
+  setBar('recall',     s.recall     ||0, C.cyan);
+  setBar('f1',         s.f1_score   ||0, C.violet);
+  setBar('accuracy',   s.accuracy   ||0, C.amber);
+  setBar('specificity',s.specificity||0, C.pink);
+}
+
+// ══════════════════════════════════════════════════════
+//  APPLY LIVE STATUS
+// ══════════════════════════════════════════════════════
+function applyLive(s){
+  if(!s)return;
+  const{status,closest_cm,fps,total_detections,total_alerts,total_critical,peak_threat}=s;
+  const pill=document.getElementById('status-pill');
+  if(status==='CRITICAL'){pill.className='pill pill-crit';pill.textContent='⚠ CRITICAL';}
+  else if(status==='ALERT'){pill.className='pill pill-alert';pill.textContent='⚠ ALERT';}
+  else if(status==='CLEAR'){pill.className='pill pill-clear';pill.textContent='● CLEAR';}
+  else{pill.className='pill pill-off';pill.textContent='● OFFLINE';}
+
+  document.getElementById('model-pill').textContent=s.model||'YOLOv8n';
+  document.getElementById('kpi-closest').textContent=closest_cm?closest_cm+'cm':'---';
+  document.getElementById('kpi-fps').textContent=fps?fps.toFixed(1):'--';
+  document.getElementById('kpi-total').textContent=total_detections||0;
+  document.getElementById('kpi-alerts').textContent=total_alerts||0;
+  document.getElementById('kpi-critical').textContent=total_critical||0;
+
+  const lcs=document.getElementById('lc-status');
+  lcs.textContent=status;
+  lcs.style.color=status==='CRITICAL'?C.red:status==='ALERT'?C.amber:C.green;
+  document.getElementById('lc-dist').textContent=closest_cm?closest_cm+'cm':'---';
+  document.getElementById('lc-fps').textContent=fps?fps.toFixed(1):'--';
+
+  document.getElementById('alert-ring').style.display=(status==='ALERT'||status==='CRITICAL')?'block':'none';
+  document.getElementById('crit-ring').style.display=status==='CRITICAL'?'block':'none';
+  document.getElementById('crit-overlay').style.display=status==='CRITICAL'?'block':'none';
+
+  updateGauge(closest_cm||9999);
+  updateThreat(peak_threat||0);
+
+  const dot=document.getElementById('sys-dot');
+  const lbl=document.getElementById('sys-label');
+  dot.className='dot '+(status==='CRITICAL'?'critical':status==='ALERT'?'alert':'online');
+  lbl.textContent='System Online'; lbl.style.color='var(--tx0)';
+  document.getElementById('sys-fps').textContent=fps?fps.toFixed(1)+' FPS':'-- FPS';
+
+  document.getElementById('si-model').textContent=s.model||'--';
+  document.getElementById('si-arduino').textContent=s.arduino||'--';
+  document.getElementById('si-cam').textContent=s.cam_resolution||'--';
+  document.getElementById('si-sess').textContent=(s.session_id||'--').slice(-12);
+  document.getElementById('si-fl').textContent=s.focal_length?s.focal_length+'px':'--';
+  document.getElementById('si-ad').textContent=(s.alert_distance_cm||200)+'cm';
+  document.getElementById('si-accuracy').textContent=s.accuracy!=null?s.accuracy.toFixed(1)+'%':'--';
+
+  // Update confusion matrix from live status (no extra API call needed)
+  updateConfusionMatrix(s);
+}
+
+// ══════════════════════════════════════════════════════
+//  HEATMAP
+// ══════════════════════════════════════════════════════
+async function fetchHeatmap(){
+  try{
+    const r=await fetch('/api/heatmap?t='+Date.now());
+    if(!r.ok)return;
+    renderHeatmap(await r.json());
+  }catch(e){}
+}
+function renderHeatmap(d){
+  const canvas=document.getElementById('heatmap-canvas');
+  if(!canvas)return;
+  const{grid,max,cols,rows}=d;
+  const W=canvas.offsetWidth||700;
+  canvas.width=W;
+  const H=Math.round(W*(rows/cols));
+  canvas.height=H;
+  const ctx=canvas.getContext('2d');
+  const cw=W/cols,ch=H/rows;
+  ctx.fillStyle='#060b10';ctx.fillRect(0,0,W,H);
+  for(let gy=0;gy<rows;gy++){
+    for(let gx=0;gx<cols;gx++){
+      const v=grid[gy][gx];if(v<=0)continue;
+      const norm=Math.min(v/max,1.0);
+      ctx.fillStyle=heatColor(norm);
+      ctx.fillRect(gx*cw+0.5,gy*ch+0.5,cw-1,ch-1);
+    }
+  }
+  ctx.strokeStyle='rgba(0,220,255,0.06)';ctx.lineWidth=0.5;
+  for(let x=0;x<=cols;x++){ctx.beginPath();ctx.moveTo(x*cw,0);ctx.lineTo(x*cw,H);ctx.stroke();}
+  for(let y=0;y<=rows;y++){ctx.beginPath();ctx.moveTo(0,y*ch);ctx.lineTo(W,y*ch);ctx.stroke();}
+  ctx.strokeStyle='rgba(255,34,68,0.35)';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(W*0.2,H);ctx.lineTo(W*0.8,H);
+  ctx.lineTo(W*0.65,H*0.28);ctx.lineTo(W*0.35,H*0.28);ctx.closePath();ctx.stroke();
+  ctx.fillStyle='rgba(255,34,68,0.04)';ctx.fill();
+  let active=0,total=0;
+  grid.forEach(row=>row.forEach(v=>{total++;if(v>0)active++;}));
+  document.getElementById('hm-hot').textContent=(max||0).toFixed(1);
+  document.getElementById('hm-zones').textContent=active;
+  document.getElementById('hm-cov').textContent=Math.round(active/total*100)+'%';
+  document.getElementById('hm-ts').textContent=new Date().toLocaleTimeString();
+}
+function heatColor(t){
+  if(t<0.25){const s=t/0.25;return `rgb(0,${Math.round(s*80)},${Math.round(80+s*120)})`;}
+  if(t<0.5){const s=(t-0.25)/0.25;return `rgb(0,${Math.round(80+s*150)},${Math.round(200-s*180)})`;}
+  if(t<0.75){const s=(t-0.5)/0.25;return `rgb(${Math.round(s*255)},${Math.round(230-s*80)},${Math.round(20-s*20)})`;}
+  const s=(t-0.75)/0.25;return `rgb(255,${Math.round(150-s*140)},0)`;
+}
+async function resetHeatmap(){
+  try{await fetch('/api/heatmap/reset',{method:'POST'});toast('Heatmap reset','ok');fetchHeatmap();}
+  catch(e){toast('Could not reach server','error');}
+}
+
+// ══════════════════════════════════════════════════════
+//  ANALYTICS
+// ══════════════════════════════════════════════════════
+function buildAnalytics(){
+  const rows=detections; if(!rows.length)return;
+  document.getElementById('an-total').textContent=rows.length;
+  document.getElementById('an-alerts').textContent=rows.filter(r=>r.alert_level!=='CLEAR').length;
+  const dists=rows.map(r=>r.distance_cm);
+  document.getElementById('an-avg-dist').textContent=Math.round(dists.reduce((a,b)=>a+b,0)/dists.length)+'cm';
+  document.getElementById('an-min-dist').textContent=Math.min(...dists)+'cm';
+  const threats=rows.map(r=>r.threat_score||0);
+  document.getElementById('an-avg-threat').textContent=Math.round(threats.reduce((a,b)=>a+b,0)/threats.length);
+
+  const samp=rows.length>200?rows.filter((_,i)=>i%Math.ceil(rows.length/200)===0):rows;
+  dc('an-dist-time');
+  charts['an-dist-time']=new Chart(document.getElementById('an-dist-time').getContext('2d'),{
+    type:'line',data:{labels:samp.map(r=>(r.timestamp||'').slice(11,19)),datasets:[
+      {data:samp.map(r=>r.distance_cm),borderColor:C.cyan,backgroundColor:'rgba(0,220,255,0.05)',borderWidth:1.5,pointRadius:2,fill:true,tension:0.3},
+      {data:samp.map(()=>200),borderColor:C.amber,borderDash:[4,4],borderWidth:1,pointRadius:0,fill:false},
+      {data:samp.map(()=>100),borderColor:C.red,borderDash:[3,3],borderWidth:1,pointRadius:0,fill:false}
+    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{grid:{color:'rgba(0,220,255,0.03)'},ticks:{maxTicksLimit:8}},
+              y:{grid:{color:'rgba(0,220,255,0.03)'},min:0,ticks:{callback:v=>v+'cm'}}}}});
+
+  const bins=[0,50,100,150,200,250,300,350,400];
+  const cnts=bins.map((b,i)=>rows.filter(r=>r.distance_cm>=b&&r.distance_cm<(bins[i+1]||99999)).length);
+  const bCols=bins.map(b=>b<=100?C.red+'88':b<=200?C.amber+'88':C.green+'88');
+  dc('an-dist-hist');
+  charts['an-dist-hist']=new Chart(document.getElementById('an-dist-hist').getContext('2d'),{
+    type:'bar',data:{labels:bins.map((b,i)=>`${b}–${bins[i+1]||'∞'}`),
+    datasets:[{data:cnts,backgroundColor:bCols,borderColor:bCols.map(c=>c.slice(0,7)),borderWidth:1,borderRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{grid:{color:'rgba(0,220,255,0.03)'}},y:{grid:{color:'rgba(0,220,255,0.03)'}}}}});
+
+  const byMin={};
+  rows.forEach(r=>{const k=(r.timestamp||'').slice(11,16);byMin[k]=(byMin[k]||0)+1;});
+  const mk=Object.keys(byMin).sort();
+  dc('an-per-min');
+  charts['an-per-min']=new Chart(document.getElementById('an-per-min').getContext('2d'),{
+    type:'bar',data:{labels:mk,datasets:[{data:mk.map(k=>byMin[k]),backgroundColor:C.violet+'88',borderColor:C.violet,borderWidth:1,borderRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{grid:{color:'rgba(0,220,255,0.03)'},ticks:{maxTicksLimit:10}},y:{grid:{color:'rgba(0,220,255,0.03)'}}}}});
+
+  const tBins=[0,10,20,30,40,50,60,70,80,90,100];
+  const tCnts=tBins.map((b,i)=>rows.filter(r=>(r.threat_score||0)>=b&&(r.threat_score||0)<(tBins[i+1]||101)).length);
+  const tCols=tBins.map(b=>b>=70?C.red+'88':b>=40?C.amber+'88':C.green+'88');
+  dc('an-threat-hist');
+  charts['an-threat-hist']=new Chart(document.getElementById('an-threat-hist').getContext('2d'),{
+    type:'bar',data:{labels:tBins.map((b,i)=>`${b}–${tBins[i+1]||100}`),
+    datasets:[{data:tCnts,backgroundColor:tCols,borderColor:tCols.map(c=>c.slice(0,7)),borderWidth:1,borderRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{grid:{color:'rgba(0,220,255,0.03)'}},y:{grid:{color:'rgba(0,220,255,0.03)'}}}}});
+}
+
+// ══════════════════════════════════════════════════════
+//  ACCURACY
+// ══════════════════════════════════════════════════════
+function buildAccuracy(){
+  const rows=detections; if(!rows.length)return;
+  const confs=rows.map(r=>r.confidence);
+  document.getElementById('ac-avg').textContent=(confs.reduce((a,b)=>a+b,0)/confs.length*100).toFixed(1)+'%';
+  document.getElementById('ac-peak').textContent=(Math.max(...confs)*100).toFixed(1)+'%';
+  document.getElementById('ac-low').textContent=(Math.min(...confs)*100).toFixed(1)+'%';
+  document.getElementById('ac-thresh').textContent=((liveStatus?.confidence_threshold||0.45)*100).toFixed(0)+'%';
+  document.getElementById('ac-peak-fps').textContent=(liveStatus?.peak_fps||0).toFixed(1);
+
+  const samp=rows.length>300?rows.filter((_,i)=>i%Math.ceil(rows.length/300)===0):rows;
+  dc('ac-conf-time');
+  charts['ac-conf-time']=new Chart(document.getElementById('ac-conf-time').getContext('2d'),{
+    type:'line',data:{labels:samp.map((_,i)=>i+1),datasets:[
+      {data:samp.map(r=>+(r.confidence*100).toFixed(1)),borderColor:C.green,backgroundColor:'rgba(0,255,170,0.05)',borderWidth:1.5,pointRadius:2,fill:true,tension:0.3},
+      {data:samp.map(()=>+((liveStatus?.confidence_threshold||0.45)*100).toFixed(0)),borderColor:C.red,borderDash:[4,4],borderWidth:1,pointRadius:0,fill:false}
+    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{grid:{color:'rgba(0,220,255,0.03)'},ticks:{maxTicksLimit:10}},
+              y:{grid:{color:'rgba(0,220,255,0.03)'},min:40,max:100,ticks:{callback:v=>v+'%'}}}}});
+
+  const bins=[45,55,65,75,80,85,90,95];
+  dc('ac-conf-hist');
+  charts['ac-conf-hist']=new Chart(document.getElementById('ac-conf-hist').getContext('2d'),{
+    type:'bar',data:{labels:bins.map((b,i)=>`${b}–${bins[i+1]||100}%`),
+    datasets:[{data:bins.map((b,i)=>rows.filter(r=>r.confidence*100>=b&&r.confidence*100<(bins[i+1]||101)).length),
+    backgroundColor:'rgba(0,255,170,0.35)',borderColor:C.green,borderWidth:1,borderRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{grid:{color:'rgba(0,220,255,0.03)'}},y:{grid:{color:'rgba(0,220,255,0.03)'}}}}});
+
+  dc('ac-model-cmp');
+  charts['ac-model-cmp']=new Chart(document.getElementById('ac-model-cmp').getContext('2d'),{
+    type:'bar',data:{labels:['mAP@50','Avg Conf %','FPS (est)','Size MB'],
+    datasets:[
+      {label:'YOLOv8n',data:[37.3,+(document.getElementById('ac-avg').textContent)||90,30,6.2],backgroundColor:C.cyan+'66',borderColor:C.cyan,borderWidth:1,borderRadius:3},
+      {label:'YOLOv10n',data:[38.5,91.2,28,5.7],backgroundColor:C.violet+'66',borderColor:C.violet,borderWidth:1,borderRadius:3}
+    ]},options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:'top',labels:{color:'#5d8a9e',boxWidth:10,font:{size:10}}}},
+      scales:{x:{grid:{color:'rgba(0,220,255,0.03)'}},y:{grid:{color:'rgba(0,220,255,0.03)'}}}}});
+
+  // Always update CM display (from live_status or from accuracyData)
+  if(liveStatus) updateConfusionMatrix(liveStatus);
+}
+
+// ══════════════════════════════════════════════════════
+//  ALERT LOG
+// ══════════════════════════════════════════════════════
+function buildAlertLog(){
+  const rows=detections;
+  const cr=rows.filter(r=>r.alert_level==='CRITICAL').length;
+  const al=rows.filter(r=>r.alert_level==='ALERT').length;
+  const sf=rows.filter(r=>r.alert_level==='CLEAR').length;
+  document.getElementById('al-crit').textContent=cr;
+  document.getElementById('al-warn').textContent=al;
+  document.getElementById('al-safe').textContent=sf;
+  document.getElementById('badge-alerts').textContent=cr+al;
+  if(rows.length&&rows[0].timestamp)
+    document.getElementById('al-date').textContent=rows[0].timestamp.slice(0,10);
+  if(rows.length===lastDetLen)return;
+  const el=document.getElementById('alert-log-list'); el.innerHTML='';
+  rows.slice().reverse().slice(0,120).forEach(r=>{
+    const ic=r.alert_level==='CRITICAL',ia=r.alert_level==='ALERT';
+    const div=document.createElement('div'); div.className='evt-row';
+    div.innerHTML=`<div class="evt-icon ${ic?'crit':ia?'warn':'ok'}">${ic?'🚨':ia?'⚠':'✓'}</div>
+      <div><div class="evt-msg">
+        ${(ic||ia)?`<strong style="color:${ic?C.red:C.amber}">${ic?'CRITICAL':'ALERT'}</strong> — `:''}
+        HUMAN at <strong style="font-family:var(--mono)">${r.distance_cm}cm</strong>,
+        conf <span style="color:var(--green);font-family:var(--mono)">${(r.confidence*100).toFixed(1)}%</span>,
+        threat <span style="color:${(r.threat_score||0)>=70?C.red:(r.threat_score||0)>=40?C.amber:C.green}">${Math.round(r.threat_score||0)}/100</span>
+      </div>
+      <div class="evt-ts">${r.timestamp}</div></div>`;
+    el.appendChild(div);
+  });
+}
+
+// ══════════════════════════════════════════════════════
+//  SESSIONS
+// ══════════════════════════════════════════════════════
+function buildSessions(){
+  document.getElementById('sess-count').textContent=sessions.length+' sessions';
+  const el=document.getElementById('sess-list'); el.innerHTML='';
+  sessions.forEach(s=>{
+    const div=document.createElement('div'); div.className='sess-row';
+    div.innerHTML=`<div class="sess-id">${(s.id||'--').slice(-14)}</div>
+      <div style="color:var(--tx1);font-size:11px">${(s.started_at||'--').slice(0,19)}</div>
+      <div style="margin-left:auto;display:flex;gap:5px;align-items:center">
+        ${s.total_critical?`<span class="s-badge crit">⚠ ${s.total_critical}</span>`:''}
+        ${s.total_alerts?`<span class="s-badge alert">${s.total_alerts}</span>`:''}
+        <span class="s-badge ok">${s.total_detections} det</span>
+        <span style="font-size:8.5px;color:var(--tx2)">${s.model||'--'}</span>
+      </div>`;
+    el.appendChild(div);
+  });
+}
+
+// ══════════════════════════════════════════════════════
+//  DATABASE
+// ══════════════════════════════════════════════════════
+function buildDatabase(){
+  const totalRows=sessions.reduce((a,s)=>a+s.total_detections,0);
+  const totalCrit=sessions.reduce((a,s)=>a+s.total_critical,0);
+  document.getElementById('db-rows').textContent=totalRows;
+  document.getElementById('db-crit').textContent=totalCrit;
+  document.getElementById('db-sess').textContent=sessions.length;
+
+  const rec=sessions.slice(0,12).reverse();
+  dc('db-sess-chart');
+  charts['db-sess-chart']=new Chart(document.getElementById('db-sess-chart').getContext('2d'),{
+    type:'bar',data:{labels:rec.map(s=>s.id.slice(-8)),datasets:[
+      {label:'Dets',data:rec.map(s=>s.total_detections),backgroundColor:C.cyan+'55',borderColor:C.cyan,borderWidth:1,borderRadius:3},
+      {label:'Alerts',data:rec.map(s=>s.total_alerts),backgroundColor:C.amber+'55',borderColor:C.amber,borderWidth:1,borderRadius:3},
+      {label:'Crit',data:rec.map(s=>s.total_critical),backgroundColor:C.red+'55',borderColor:C.red,borderWidth:1,borderRadius:3}
+    ]},options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:'top',labels:{color:'#5d8a9e',boxWidth:10,font:{size:10}}}},
+      scales:{x:{grid:{color:'rgba(0,220,255,0.03)'},ticks:{maxTicksLimit:8}},y:{grid:{color:'rgba(0,220,255,0.03)'}}}}});
+
+  const cr=detections.filter(r=>r.alert_level==='CRITICAL').length;
+  const al=detections.filter(r=>r.alert_level==='ALERT').length;
+  const sf=detections.filter(r=>r.alert_level==='CLEAR').length;
+  dc('db-level-pie');
+  charts['db-level-pie']=new Chart(document.getElementById('db-level-pie').getContext('2d'),{
+    type:'doughnut',data:{labels:['CRITICAL','ALERT','CLEAR'],datasets:[{data:[cr,al,sf],backgroundColor:[C.red,C.amber,C.green],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'58%',
+      plugins:{legend:{display:true,position:'bottom',labels:{color:'#5d8a9e',boxWidth:10,font:{size:10}}}}}});
+
+  const tbody=document.getElementById('db-raw-body'); tbody.innerHTML='';
+  detections.slice(-100).reverse().forEach(r=>{
+    const col=r.alert_level==='CRITICAL'?C.red:r.alert_level==='ALERT'?C.amber:C.green;
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td style="color:var(--tx2);font-family:var(--mono)">${r.id}</td>
+      <td style="font-family:var(--mono)">${r.timestamp}</td>
+      <td><span class="det-tag">HUMAN</span></td>
+      <td style="font-family:var(--mono);color:${col}">${r.distance_cm}cm</td>
+      <td style="font-family:var(--mono)">${(r.confidence*100).toFixed(1)}%</td>
+      <td style="font-family:var(--mono);color:${(r.threat_score||0)>=70?C.red:(r.threat_score||0)>=40?C.amber:C.green}">${Math.round(r.threat_score||0)}</td>
+      <td style="font-family:var(--mono);color:${col}">${r.alert_level}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ══════════════════════════════════════════════════════
+//  CSV EXPORT
+// ══════════════════════════════════════════════════════
+function exportCSV(){
+  const rows=['id,timestamp,type,distance_cm,confidence,threat_score,alert_level',
+    ...detections.map(r=>`${r.id},${r.timestamp},HUMAN,${r.distance_cm},${r.confidence},${r.threat_score||0},${r.alert_level}`)];
+  const blob=new Blob([rows.join('\n')],{type:'text/csv'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='edge_eye_export.csv'; a.click();
+  toast('CSV exported','ok');
+}
+
+// ══════════════════════════════════════════════════════
+//  REPORT MODAL
+// ══════════════════════════════════════════════════════
+let reportData=null;
+async function openReport(){
+  document.getElementById('report-modal').classList.add('open');
+  document.getElementById('report-content').innerHTML='<div style="text-align:center;padding:40px;color:var(--tx2)">Loading…</div>';
+  try{
+    const r=await fetch('/api/report/json?t='+Date.now());
+    reportData=await r.json();
+    const{summary,session}=reportData;
+    const s2=liveStatus||{};
+    document.getElementById('report-content').innerHTML=`
+      <div style="font-family:var(--mono);font-size:11px;line-height:2;color:var(--tx0)">
+        <h2 style="font-size:15px;margin-bottom:14px;color:var(--cyan);letter-spacing:.08em">EDGE EYE v5.0 — SESSION REPORT</h2>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px">
+          <div>
+            <div style="color:var(--tx2);font-size:9px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px">Session Info</div>
+            <div>ID: <span style="color:var(--cyan)">${session.id||'--'}</span></div>
+            <div>Started: <span style="color:var(--tx0)">${(session.started_at||'--').replace('T',' ')}</span></div>
+            <div>Model: <span style="color:var(--green)">${session.model||'--'}</span></div>
+            <div>Generated: <span style="color:var(--tx1)">${new Date().toLocaleString()}</span></div>
+          </div>
+          <div>
+            <div style="color:var(--tx2);font-size:9px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px">Summary</div>
+            <div>Total Detections: <span style="color:var(--green);font-size:15px;font-weight:700">${summary.total||0}</span></div>
+            <div>Critical: <span style="color:var(--red)">${summary.critical||0}</span></div>
+            <div>Alerts: <span style="color:var(--amber)">${summary.alert||0}</span></div>
+            <div>Safe: <span style="color:var(--green)">${summary.safe||0}</span></div>
+          </div>
+        </div>
+        <div style="border-top:1px solid var(--line);padding-top:14px;margin-bottom:14px">
+          <div style="color:var(--tx2);font-size:9px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Performance Metrics</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:7px">
+            ${[['Avg Conf',summary.avg_confidence?.toFixed(1)+'%',C.green],
+               ['Min Dist',summary.min_distance+'cm',C.red],
+               ['Avg Threat',summary.avg_threat?.toFixed(1)||'--',C.amber],
+               ['Accuracy',s2.accuracy?.toFixed(1)+'%'||'--',C.cyan]
+              ].map(([k,v,c])=>`<div style="background:var(--bg3);padding:9px;border-radius:5px;border:1px solid var(--line)">
+                <div style="color:var(--tx2);font-size:9px">${k}</div>
+                <div style="font-size:17px;color:${c}">${v||'--'}</div>
+              </div>`).join('')}
+          </div>
+        </div>
+        <div style="border-top:1px solid var(--line);padding-top:12px;margin-bottom:14px">
+          <div style="color:var(--tx2);font-size:9px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px">Confusion Matrix</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+            ${[['TP',s2.cm_tp||0,C.green,'Alert correctly triggered'],
+               ['FN',s2.cm_fn||0,C.amber,'Missed alert'],
+               ['FP',s2.cm_fp||0,C.red,'False alarm'],
+               ['TN',s2.cm_tn||0,C.cyan,'Correctly clear']
+              ].map(([k,v,c,d])=>`<div style="background:var(--bg3);padding:9px;border-radius:5px;border:1px solid var(--line)">
+                <div style="display:flex;justify-content:space-between"><span style="color:${c};font-weight:700">${k}</span><span style="color:var(--tx0);font-size:18px;font-weight:700">${v}</span></div>
+                <div style="color:var(--tx2);font-size:8.5px;margin-top:2px">${d}</div>
+              </div>`).join('')}
+          </div>
+        </div>
+        <div style="border-top:1px solid var(--line);padding-top:12px;color:var(--tx2);font-size:9.5px">
+          EDGE EYE v5.0 — Team Tiki-Takas — ${new Date().toLocaleDateString()}
+        </div>
+      </div>`;
+  }catch(e){
+    document.getElementById('report-content').innerHTML='<div style="text-align:center;padding:40px;color:var(--red)">Could not load report — is server_v2.py running?</div>';
+  }
+}
+function closeReport(){document.getElementById('report-modal').classList.remove('open');}
+function exportJSON(){
+  if(!reportData)return;
+  const blob=new Blob([JSON.stringify(reportData,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='edge_eye_report.json'; a.click();
+  toast('JSON exported','ok');
+}
+function printReport(){window.print();}
+
+// ══════════════════════════════════════════════════════
+//  SETTINGS API
+// ══════════════════════════════════════════════════════
+async function saveConfig(){
+  const body={
+    alert_distance_cm:  +document.getElementById('cfg-alert').value,
+    critical_distance_cm:+document.getElementById('cfg-crit').value,
+    confidence_threshold:+document.getElementById('cfg-conf').value/100,
+    focal_length:        +document.getElementById('cfg-fl').value,
+    camera_index:        +document.getElementById('cfg-cam').value,
+  };
+  try{const r=await fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json();if(d.ok)toast('Config applied ✓','ok');}
+  catch(e){toast('Cannot reach server','error');}
+}
+async function calibrate(){
+  try{await fetch('/api/calibrate',{method:'POST'});toast('Calibrating — stand 150cm from camera','ok');}
+  catch(e){toast('Cannot reach server','error');}
+}
+function applyToggle(k,v){
+  fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({[k]:v})}).catch(()=>{});
+}
+
+// ══════════════════════════════════════════════════════
+//  FETCH LOOP — optimised: use SSE when available, fallback to polling
+// ══════════════════════════════════════════════════════
+let sseActive=false;
+function setupSSE(){
+  try{
+    const es=new EventSource('/api/stream');
+    es.onmessage=e=>{
+      try{
+        liveStatus=JSON.parse(e.data);
+        offlineCount=0;
+        applyLive(liveStatus);
+        document.getElementById('conn-banner').style.display='none';
+      }catch(ex){}
+    };
+    es.onerror=()=>{sseActive=false;es.close();};
+    sseActive=true;
+    console.log('SSE connected');
+  }catch(e){sseActive=false;}
+}
+
+async function fetchStatus(){
+  try{
+    const r=await fetch('/api/status?t='+Date.now());
+    if(!r.ok)return false;
+    const d=await r.json();
+    const age=(Date.now()-new Date(d.ts).getTime())/1000;
+    if(age>10)return false;
+    liveStatus=d;return true;
+  }catch(e){return false;}
+}
+async function fetchDetections(){
+  try{
+    const r=await fetch('/api/detections?limit=500&t='+Date.now());
+    if(!r.ok)return;
+    detections=await r.json();
+  }catch(e){}
+}
+async function fetchSessions(){
+  try{
+    const r=await fetch('/api/sessions?t='+Date.now());
+    if(!r.ok)return;
+    sessions=await r.json();
+  }catch(e){}
+}
+
+function render(){
+  if(detections.length){
+    buildDetList();
+    buildLiveDistChart();
+    buildAlertLog();
+    const ap=document.querySelector('.page.active')?.id;
+    if(ap==='page-analytics')buildAnalytics();
+    if(ap==='page-accuracy') buildAccuracy();
+    if(ap==='page-sessions') buildSessions();
+    if(ap==='page-database') buildDatabase();
+    if(ap==='page-heatmap')  fetchHeatmap();
+    lastDetLen=detections.length;
+  }
+  if(!liveStatus)updateGauge(9999);
+}
+
+let tick2=0;
+async function mainLoop(){
+  // Only fetch status via polling if SSE is not active
+  let online=sseActive;
+  if(!sseActive){
+    online=await fetchStatus();
+  }
+  await fetchDetections();
+  tick2++;
+  if(tick2%10===0)await fetchSessions();
+  if(tick2%5===0&&document.getElementById('page-heatmap')?.classList.contains('active'))
+    fetchHeatmap();
+
+  if(online&&liveStatus){
+    offlineCount=0;
+    if(!sseActive)applyLive(liveStatus);
+    document.getElementById('conn-banner').style.display='none';
+  }else{
+    offlineCount++;
+    if(offlineCount>=3){
+      document.getElementById('sys-dot').className='dot offline';
+      document.getElementById('sys-label').textContent='System Offline';
+      document.getElementById('sys-label').style.color='var(--tx2)';
+      document.getElementById('status-pill').className='pill pill-off';
+      document.getElementById('status-pill').textContent='● OFFLINE';
+      document.getElementById('conn-banner').style.display='block';
+      document.getElementById('alert-ring').style.display='none';
+      document.getElementById('crit-ring').style.display='none';
+      document.getElementById('crit-overlay').style.display='none';
+    }
+  }
+  render();
+}
+
+// ══════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════
+initGauge();
+updateGauge(9999);
+setupSSE();          // try SSE first
+mainLoop();
+setInterval(mainLoop, 1000);  // poll detections every 1s
+fetchSessions();
+</script>
+</body>
+</html>
